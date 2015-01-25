@@ -1,13 +1,13 @@
 package main
 
 import (
-	"github.com/MichalPokorny/worthy/money"
-	"github.com/MichalPokorny/worthy/portfolio"
-	"github.com/MichalPokorny/worthy/free_currency_converter"
-	"github.com/MichalPokorny/worthy/yahoo_stock_api"
-	"io/ioutil"
 	"encoding/json"
 	"fmt"
+	"github.com/MichalPokorny/worthy/free_currency_converter"
+	"github.com/MichalPokorny/worthy/money"
+	"github.com/MichalPokorny/worthy/portfolio"
+	"github.com/MichalPokorny/worthy/yahoo_stock_api"
+	"io/ioutil"
 	"os/user"
 )
 
@@ -73,18 +73,8 @@ func LoadPortfolio() (portfolio.Portfolio, []money.Money) {
 
 func main() {
 	myPortfolio, myCurrencies := LoadPortfolio()
-	//myPortfolio := portfolio.LoadPortfolio()
-	//spew.Dump(myPortfolio)
-	//spew.Dump(myCurrencies)
-
 	myCurrencies = append(myCurrencies, GetValue(myPortfolio))
 
 	total := sumMoney(myCurrencies, "CZK")
-	//total := sumMoney([]money.Money {
-	//	GetValue(myPortfolio),
-	//	money.New("CZK", 13),
-	//	money.New("EUR", 1954.40),
-	//	money.New("USD", 81.89),
-	//}, "CZK")
 	fmt.Printf("%.2f\n", total.Amount)
 }

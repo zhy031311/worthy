@@ -2,7 +2,6 @@ package yahoo_stock_api
 
 import (
 	"errors"
-	//"github.com/davecgh/go-spew/spew"
 	"github.com/MichalPokorny/worthy/money"
 	"io/ioutil"
 	"net/http"
@@ -20,7 +19,6 @@ func parseTicker(yahooLine string) (Ticker, error) {
 	var ticker Ticker
 	var err error
 	parts := strings.Split(strings.TrimSpace(yahooLine), ",")
-	//spew.Dump(parts)
 	// The symbol is quoted in the CSV.
 	ticker.Symbol = strings.Replace(parts[0], "\"", "", 2)
 	// First try to get a realtime bid price.
@@ -35,7 +33,8 @@ func parseTicker(yahooLine string) (Ticker, error) {
 	return ticker, nil
 }
 
-// Pretty much everything but previous close is totally useless.
+// Pretty much everything but previous close is totally useless (happily
+// gives 0.0, N/A, 1.0, etc.).
 const giveSymbol = "s0"
 const givePreviousClose = "p0"
 
