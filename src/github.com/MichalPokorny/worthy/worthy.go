@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"flag"
 	"fmt"
 	"github.com/MichalPokorny/worthy/free_currency_converter"
 	"github.com/MichalPokorny/worthy/money"
@@ -9,6 +10,8 @@ import (
 	"github.com/MichalPokorny/worthy/yahoo_stock_api"
 	"io/ioutil"
 	"os/user"
+	"strconv"
+	"strings"
 )
 
 func GetValue(portfolio portfolio.Portfolio) money.Money {
@@ -47,9 +50,22 @@ func sumMoney(inputs []money.Money, target string) money.Money {
 	return money.New(target, total)
 }
 
-func LoadPortfolio() (portfolio.Portfolio, []money.Money) {
+func StartsWith(s string, prefix string) bool {
+	return s[0:len(prefix)] == prefix
+}
+
+func expand(path string) string {
 	usr, _ := user.Current()
-	body, err := ioutil.ReadFile(usr.HomeDir + "/.stock-portfolio.json")
+	dir := usr.HomeDir
+	if StartsWith(path, "~/") {
+		path = dir + "/" + path[2:]
+	}
+	return path
+}
+
+func LoadPortfolio() (portfolio.Portfolio, []money.Money) {
+	path := expand("~/.stock-portfolio.json")
+	body, err := ioutil.ReadFile(path)
 	if err != nil {
 		panic(err)
 	}
@@ -71,10 +87,38 @@ func LoadPortfolio() (portfolio.Portfolio, []money.Money) {
 	return outPortfolio, outCurrencies
 }
 
-func main() {
+func GetBrokerAccountValue() money.Money {
 	myPortfolio, myCurrencies := LoadPortfolio()
 	myCurrencies = append(myCurrencies, GetValue(myPortfolio))
+	return sumMoney(myCurrencies, "CZK")
+}
 
-	total := sumMoney(myCurrencies, "CZK")
-	fmt.Printf("%.2f\n", total.Amount)
+func GetBitcoinValue() money.Money {
+	path := expand("~/.btckit/wallet_btc")
+	body, err := ioutil.ReadFile(path)
+	if err != nil {
+		panic(err)
+	}
+	amount, err := strconv.ParseFloat(strings.TrimSpace(string(body)), 64)
+	if err != nil {
+		panic(err)
+	}
+	bitcoins := money.New("BTC", amount)
+	return free_currency_converter.Convert(bitcoins, "CZK")
+}
+
+func main() {
+	var mode = flag.String("mode", "", "'broker' or 'bitcoin'")
+	flag.Parse()
+
+	switch *mode {
+	case "broker":
+		brokerAccount := GetBrokerAccountValue()
+		fmt.Printf("%.2f\n", brokerAccount.Amount)
+	case "bitcoin":
+		bitcoins := GetBitcoinValue()
+		fmt.Printf("%.2f\n", bitcoins.Amount)
+	default:
+		panic("bad mode")
+	}
 }
