@@ -107,6 +107,20 @@ func GetBitcoinValue() money.Money {
 	return free_currency_converter.Convert(bitcoins, "CZK")
 }
 
+func GetEuroAccountValue() money.Money {
+	path := expand("~/.euro-account")
+	body, err := ioutil.ReadFile(path)
+	if err != nil {
+		panic(err)
+	}
+	amount, err := strconv.ParseFloat(strings.TrimSpace(string(body)), 64)
+	if err != nil {
+		panic(err)
+	}
+	bitcoins := money.New("EUR", amount)
+	return free_currency_converter.Convert(bitcoins, "CZK")
+}
+
 func main() {
 	var mode = flag.String("mode", "", "'broker' or 'bitcoin'")
 	flag.Parse()
@@ -118,6 +132,9 @@ func main() {
 	case "bitcoin":
 		bitcoins := GetBitcoinValue()
 		fmt.Printf("%.2f\n", bitcoins.Amount)
+	case "euro_account":
+		euros := GetEuroAccountValue()
+		fmt.Printf("%.2f\n", euros.Amount)
 	default:
 		panic("bad mode")
 	}
