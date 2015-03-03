@@ -8,7 +8,9 @@ import (
 	"github.com/MichalPokorny/worthy/money"
 	"github.com/MichalPokorny/worthy/portfolio"
 	"github.com/MichalPokorny/worthy/yahoo_stock_api"
+	"github.com/olekukonko/tablewriter"
 	"io/ioutil"
+	"os"
 	"os/user"
 	"strconv"
 	"strings"
@@ -122,7 +124,7 @@ func GetEuroAccountValue() money.Money {
 }
 
 func main() {
-	var mode = flag.String("mode", "", "'broker' or 'bitcoin'")
+	var mode = flag.String("mode", "", "'broker', 'bitcoin', 'euro_account' or 'table'")
 	flag.Parse()
 
 	switch *mode {
@@ -135,6 +137,12 @@ func main() {
 	case "euro_account":
 		euros := GetEuroAccountValue()
 		fmt.Printf("%.2f\n", euros.Amount)
+	case "table":
+		table := tablewriter.NewWriter(os.Stdout)
+		table.Append([]string{"Bitcoiny", GetBitcoinValue().String()})
+		table.Append([]string{"Akcie", GetBrokerAccountValue().String()})
+		table.Append([]string{"EUR účet", GetEuroAccountValue().String()})
+		table.Render()
 	default:
 		panic("bad mode")
 	}
