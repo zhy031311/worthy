@@ -2,6 +2,7 @@ package yahoo_stock_api
 
 import (
 	"errors"
+	"fmt"
 	"github.com/MichalPokorny/worthy/money"
 	"io/ioutil"
 	"net/http"
@@ -21,11 +22,10 @@ func parseTicker(yahooLine string) (Ticker, error) {
 	parts := strings.Split(strings.TrimSpace(yahooLine), ",")
 	// The symbol is quoted in the CSV.
 	ticker.Symbol = strings.Replace(parts[0], "\"", "", 2)
-	// First try to get a realtime bid price.
 	var sellUSD float64
 	sellUSD, err = strconv.ParseFloat(parts[1], 64)
 	if err != nil {
-		return ticker, err
+		return ticker, fmt.Errorf("can't parse sell for ticker %s: %r", ticker.Symbol, parts[1])
 	}
 	ticker.Sell.Currency = "USD"
 	ticker.Sell.Amount = sellUSD
