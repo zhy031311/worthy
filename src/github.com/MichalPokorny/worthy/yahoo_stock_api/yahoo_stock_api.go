@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/MichalPokorny/worthy/money"
+	"github.com/MichalPokorny/worthy/stock"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -11,13 +12,8 @@ import (
 	"strings"
 )
 
-type Ticker struct {
-	Symbol string
-	Sell   money.Money
-}
-
-func parseTicker(yahooLine string) (Ticker, error) {
-	var ticker Ticker
+func parseTicker(yahooLine string) (stock.Ticker, error) {
+	var ticker stock.Ticker
 	var err error
 	parts := strings.Split(strings.TrimSpace(yahooLine), ",")
 	// The symbol is quoted in the CSV.
@@ -27,25 +23,22 @@ func parseTicker(yahooLine string) (Ticker, error) {
 	if err != nil {
 		return ticker, fmt.Errorf("can't parse sell for ticker %s: %r", ticker.Symbol, parts[1])
 	}
-	ticker.Sell.Currency = "USD"
-	ticker.Sell.Amount = sellUSD
-
+	ticker.Sell = money.New("USD", sellUSD)
 	return ticker, nil
 }
 
 // Pretty much everything but previous close is totally useless (happily
 // gives 0.0, N/A, 1.0, etc.).
-const giveSymbol = "s0"
-const givePreviousClose = "p0"
+const giveSymbol = "s"
+const givePreviousClose = "p"
 
 const endpoint = "http://download.finance.yahoo.com/d/quotes.csv"
 
-func GetTickers(symbols []string) ([]Ticker, error) {
-	tickers := make([]Ticker, len(symbols))
+func GetTickers(symbols []string) ([]stock.Ticker, error) {
+	tickers := make([]stock.Ticker, len(symbols))
 	values := url.Values{}
-	values.Add("s", strings.Join(symbols, ","))
+	values.Add("s", strings.Join(symbols, "+"))
 	values.Add("f", giveSymbol+givePreviousClose)
-	values.Add("e", ".csv")
 
 	requestUrl := endpoint + "?" + values.Encode()
 

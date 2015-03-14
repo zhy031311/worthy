@@ -32,7 +32,7 @@ func GetValue(portfolio portfolio.Portfolio) money.Money {
 	}
 	total := 0.0
 	for _, entry := range portfolio {
-		total += float64(entry.Amount) * stockValues[entry.Ticker]
+		total += float64(entry.Amount) * stockValues[entry.Symbol]
 	}
 	result := money.Money{}
 	result.Currency = "USD"

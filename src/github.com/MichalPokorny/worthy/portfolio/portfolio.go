@@ -1,15 +1,15 @@
 package portfolio
 
 type Entry struct {
-	Ticker string
+	Symbol string
 	Amount int
 }
 
 type Portfolio []Entry
 
-func NewEntry(ticker string, amount int) Entry {
+func NewEntry(symbol string, amount int) Entry {
 	var entry Entry
-	entry.Ticker = ticker
+	entry.Symbol = symbol
 	entry.Amount = amount
 	return entry
 }
@@ -17,7 +17,7 @@ func NewEntry(ticker string, amount int) Entry {
 func (portfolio Portfolio) GetStockSymbols() []string {
 	symbols := []string{}
 	for _, entry := range portfolio {
-		symbols = append(symbols, entry.Ticker)
+		symbols = append(symbols, entry.Symbol)
 	}
 	return symbols
 }
