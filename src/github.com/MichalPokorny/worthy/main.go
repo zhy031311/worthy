@@ -12,8 +12,6 @@ import (
 	"github.com/MichalPokorny/worthy/util"
 	"github.com/olekukonko/tablewriter"
 	"os"
-	"strconv"
-	"strings"
 )
 
 func GetValue(portfolio portfolio.Portfolio) money.Money {
@@ -78,12 +76,14 @@ func GetBrokerAccountValue() money.Money {
 	return sumMoney(myCurrencies, "CZK")
 }
 
+func GetChaseAccountValue() money.Money {
+	amount := util.ReadFileFloat64("~/.chase_account")
+	dollars := money.New("USD", amount)
+	return currency_layer.Convert(dollars, "CZK")
+}
+
 func GetBitcoinValue() money.Money {
-	body := util.ReadFile("~/.btckit/wallet_btc")
-	amount, err := strconv.ParseFloat(strings.TrimSpace(body), 64)
-	if err != nil {
-		panic(err)
-	}
+	amount := util.ReadFileFloat64("~/.btckit/wallet_btc")
 	bitcoins := money.New("BTC", amount)
 	return bitcoin_average.Convert(bitcoins, "CZK")
 }
@@ -101,10 +101,14 @@ func main() {
 	case "bitcoin":
 		bitcoins := GetBitcoinValue()
 		fmt.Printf("%.2f\n", bitcoins.Amount)
+	case "chase":
+		chase := GetChaseAccountValue()
+		fmt.Printf("%.2f\n", chase.Amount)
 	case "table":
 		table := tablewriter.NewWriter(os.Stdout)
 		table.Append([]string{"Bitcoiny", GetBitcoinValue().String()})
 		table.Append([]string{"Akcie", GetBrokerAccountValue().String()})
+		table.Append([]string{"Chase účet", GetChaseAccountValue().String()})
 		table.Render()
 	default:
 		panic("bad mode")

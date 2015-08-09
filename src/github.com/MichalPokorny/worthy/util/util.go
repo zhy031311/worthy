@@ -3,6 +3,8 @@ package util
 import (
 	"os/user"
 	"io/ioutil"
+	"strconv"
+	"strings"
 )
 
 func startsWith(s string, prefix string) bool {
@@ -32,4 +34,13 @@ func ReadFile(path string) string {
 		panic(err)
 	}
 	return string(body)
+}
+
+func ReadFileFloat64(path string) float64 {
+	body := ReadFile(path)
+	amount, err := strconv.ParseFloat(strings.TrimSpace(body), 64)
+	if err != nil {
+		panic(err)
+	}
+	return amount
 }
