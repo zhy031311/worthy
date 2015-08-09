@@ -1,29 +1,21 @@
-package free_currency_converter
+// Simple wrapper around https://bitcoinaverage.com/api/.
+
+package bitcoin_average
 
 import (
 	"encoding/json"
 	"github.com/MichalPokorny/worthy/money"
 	"io/ioutil"
 	"net/http"
-	"net/url"
 )
 
-const endpoint = "http://www.freecurrencyconverterapi.com/api/v3/convert"
-
-var cache map[string]float64 = make(map[string]float64)
+const endpoint = "https://api.bitcoinaverage.com/ticker/global/"
 
 func getConversion(from string, to string) float64 {
-	query := from + "_" + to
-
-	if cachedResult, cacheHit := cache[query]; cacheHit {
-		return cachedResult
+	if from != "BTC" {
+		panic("Can only convert from BTC.")
 	}
-
-	values := url.Values{}
-	values.Add("q", query)
-	values.Add("compact", "y")
-
-	requestUrl := endpoint + "?" + values.Encode()
+	requestUrl := endpoint + "/" + to
 	resp, err := http.Get(requestUrl)
 	if err != nil {
 		panic(err)
@@ -38,8 +30,12 @@ func getConversion(from string, to string) float64 {
 	if err := json.Unmarshal(body, &jsonBody); err != nil {
 		panic(err)
 	}
-	conversion := jsonBody[query].(map[string]interface{})["val"].(float64)
-	cache[query] = conversion
+	var conversion float64
+	if jsonBody["24h_avg"] != nil {
+		conversion = jsonBody["24h_avg"].(float64)
+	} else {
+		conversion = jsonBody["last"].(float64)
+	}
 	return conversion
 }
 

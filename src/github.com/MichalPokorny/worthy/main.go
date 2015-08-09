@@ -4,14 +4,14 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"github.com/MichalPokorny/worthy/free_currency_converter"
+	"github.com/MichalPokorny/worthy/currency_layer"
 	"github.com/MichalPokorny/worthy/money"
 	"github.com/MichalPokorny/worthy/portfolio"
 	"github.com/MichalPokorny/worthy/yahoo_stock_api"
+	"github.com/MichalPokorny/worthy/bitcoin_average"
+	"github.com/MichalPokorny/worthy/util"
 	"github.com/olekukonko/tablewriter"
-	"io/ioutil"
 	"os"
-	"os/user"
 	"strconv"
 	"strings"
 )
@@ -43,7 +43,7 @@ func GetValue(portfolio portfolio.Portfolio) money.Money {
 func sumMoney(inputs []money.Money, target string) money.Money {
 	total := 0.0
 	for _, item := range inputs {
-		converted := free_currency_converter.Convert(item, target)
+		converted := currency_layer.Convert(item, target)
 		if converted.Currency != target {
 			panic("conversion fail")
 		}
@@ -52,25 +52,8 @@ func sumMoney(inputs []money.Money, target string) money.Money {
 	return money.New(target, total)
 }
 
-func StartsWith(s string, prefix string) bool {
-	return s[0:len(prefix)] == prefix
-}
-
-func expand(path string) string {
-	usr, _ := user.Current()
-	dir := usr.HomeDir
-	if StartsWith(path, "~/") {
-		path = dir + "/" + path[2:]
-	}
-	return path
-}
-
 func LoadPortfolio() (portfolio.Portfolio, []money.Money) {
-	path := expand("~/.stock-portfolio.json")
-	body, err := ioutil.ReadFile(path)
-	if err != nil {
-		panic(err)
-	}
+	body := util.ReadFileBytes("~/.stock-portfolio.json")
 	jsonBody := make(map[string]interface{})
 	if err := json.Unmarshal(body, &jsonBody); err != nil {
 		panic(err)
@@ -96,22 +79,20 @@ func GetBrokerAccountValue() money.Money {
 }
 
 func GetBitcoinValue() money.Money {
-	path := expand("~/.btckit/wallet_btc")
-	body, err := ioutil.ReadFile(path)
-	if err != nil {
-		panic(err)
-	}
-	amount, err := strconv.ParseFloat(strings.TrimSpace(string(body)), 64)
+	body := util.ReadFile("~/.btckit/wallet_btc")
+	amount, err := strconv.ParseFloat(strings.TrimSpace(body), 64)
 	if err != nil {
 		panic(err)
 	}
 	bitcoins := money.New("BTC", amount)
-	return free_currency_converter.Convert(bitcoins, "CZK")
+	return bitcoin_average.Convert(bitcoins, "CZK")
 }
 
 func main() {
 	var mode = flag.String("mode", "", "'broker', 'broker', 'bitcoin' or 'table'")
 	flag.Parse()
+
+	currency_layer.Init()
 
 	switch *mode {
 	case "broker":
