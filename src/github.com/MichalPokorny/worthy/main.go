@@ -14,6 +14,10 @@ import (
 	"os"
 )
 
+var STOCK_PORTFOLIO_PATH = "~/Dropbox/finance/stock-portfolio.json"
+var CHASE_ACCOUNT_PATH = "~/Dropbox/finance/chase_account"
+var BITCOIN_PATH = "~/Dropbox/finance/wallet_btc"
+
 func GetValue(portfolio portfolio.Portfolio) money.Money {
 	symbols := portfolio.GetStockSymbols()
 	stockValues := map[string]float64{}
@@ -51,7 +55,7 @@ func sumMoney(inputs []money.Money, target string) money.Money {
 }
 
 func LoadPortfolio() (portfolio.Portfolio, []money.Money) {
-	body := util.ReadFileBytes("~/.stock-portfolio.json")
+	body := util.ReadFileBytes(STOCK_PORTFOLIO_PATH)
 	jsonBody := make(map[string]interface{})
 	if err := json.Unmarshal(body, &jsonBody); err != nil {
 		panic(err)
@@ -77,13 +81,13 @@ func GetBrokerAccountValue() money.Money {
 }
 
 func GetChaseAccountValue() money.Money {
-	amount := util.ReadFileFloat64("~/.chase_account")
+	amount := util.ReadFileFloat64(CHASE_ACCOUNT_PATH)
 	dollars := money.New("USD", amount)
 	return currency_layer.Convert(dollars, "CZK")
 }
 
 func GetBitcoinValue() money.Money {
-	amount := util.ReadFileFloat64("~/.btckit/wallet_btc")
+	amount := util.ReadFileFloat64(BITCOIN_PATH)
 	bitcoins := money.New("BTC", amount)
 	return bitcoin_average.Convert(bitcoins, "CZK")
 }
