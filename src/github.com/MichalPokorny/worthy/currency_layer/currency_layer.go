@@ -18,7 +18,7 @@ var cache map[string]float64 = make(map[string]float64)
 var accessKey string
 
 func Init() {
-	body := util.ReadFile("~/.currency_layer_key")
+	body := util.ReadFile("~/Dropbox/finance/currency_layer_key")
 	accessKey = strings.Trim(body, "\n\r ")
 }
 
