@@ -1,6 +1,7 @@
 package util
 
 import (
+	"os"
 	"os/user"
 	"io/ioutil"
 	"strconv"
@@ -43,4 +44,18 @@ func ReadFileFloat64(path string) float64 {
 		panic(err)
 	}
 	return amount
+}
+
+func WriteFile(path string, bytes []byte) {
+	if err := ioutil.WriteFile(ExpandPath(path), bytes, 0755); err != nil {
+		panic(err)
+	}
+}
+
+func FileExists(path string) bool {
+	filename := ExpandPath(path)
+	if _, err := os.Stat(filename); os.IsNotExist(err) {
+		return false
+	}
+	return true
 }
