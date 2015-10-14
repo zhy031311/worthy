@@ -4,21 +4,17 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"github.com/MichalPokorny/worthy/bitcoin_average"
 	"github.com/MichalPokorny/worthy/currency_layer"
 	"github.com/MichalPokorny/worthy/money"
 	"github.com/MichalPokorny/worthy/portfolio"
-	"github.com/MichalPokorny/worthy/yahoo_stock_api"
-	"github.com/MichalPokorny/worthy/bitcoin_average"
 	"github.com/MichalPokorny/worthy/util"
+	"github.com/MichalPokorny/worthy/yahoo_stock_api"
 	"github.com/olekukonko/tablewriter"
 	"os"
 )
 
-var STOCK_PORTFOLIO_PATH = "~/Dropbox/finance/stock-portfolio.json"
-var CHASE_ACCOUNT_PATH = "~/Dropbox/finance/chase_account"
-var BITCOIN_PATH = "~/Dropbox/finance/wallet_btc"
-
-func GetValue(portfolio portfolio.Portfolio) money.Money {
+func getValueOfStocks(portfolio portfolio.Portfolio) money.Money {
 	symbols := portfolio.GetStockSymbols()
 	stockValues := map[string]float64{}
 	tickers, err := yahoo_stock_api.GetTickers(symbols)
@@ -45,7 +41,14 @@ func GetValue(portfolio portfolio.Portfolio) money.Money {
 func sumMoney(inputs []money.Money, target string) money.Money {
 	total := 0.0
 	for _, item := range inputs {
-		converted := currency_layer.Convert(item, target)
+		var converted money.Money = item
+
+		// TODO: multi-step conversion
+		if bitcoin_average.CanConvert(converted, target) {
+			converted = bitcoin_average.Convert(converted, target)
+		} else if currency_layer.CanConvert(converted, target) {
+			converted = currency_layer.Convert(converted, target)
+		}
 		if converted.Currency != target {
 			panic("conversion fail")
 		}
@@ -54,14 +57,22 @@ func sumMoney(inputs []money.Money, target string) money.Money {
 	return money.New(target, total)
 }
 
-func LoadPortfolio() (portfolio.Portfolio, []money.Money) {
-	body := util.ReadFileBytes(STOCK_PORTFOLIO_PATH)
+func loadPortfolio(path string) (portfolio.Portfolio, []money.Money) {
+	body := util.ReadFileBytes(path)
 	jsonBody := make(map[string]interface{})
 	if err := json.Unmarshal(body, &jsonBody); err != nil {
 		panic(err)
 	}
-	stocks := jsonBody["stocks"].(map[string]interface{})
-	currencies := jsonBody["currencies"].(map[string]interface{})
+
+	stocks := make(map[string]interface{})
+	if stocksField, ok := jsonBody["stocks"]; ok {
+		stocks = stocksField.(map[string]interface{})
+	}
+
+	currencies := make(map[string]interface{})
+	if currenciesField, ok := jsonBody["currencies"]; ok {
+		currencies = currenciesField.(map[string]interface{})
+	}
 
 	outPortfolio := make(portfolio.Portfolio, 0)
 	for ticker, amount := range stocks {
@@ -74,22 +85,10 @@ func LoadPortfolio() (portfolio.Portfolio, []money.Money) {
 	return outPortfolio, outCurrencies
 }
 
-func GetBrokerAccountValue() money.Money {
-	myPortfolio, myCurrencies := LoadPortfolio()
-	myCurrencies = append(myCurrencies, GetValue(myPortfolio))
-	return sumMoney(myCurrencies, "CZK")
-}
-
-func GetChaseAccountValue() money.Money {
-	amount := util.ReadFileFloat64(CHASE_ACCOUNT_PATH)
-	dollars := money.New("USD", amount)
-	return currency_layer.Convert(dollars, "CZK")
-}
-
-func GetBitcoinValue() money.Money {
-	amount := util.ReadFileFloat64(BITCOIN_PATH)
-	bitcoins := money.New("BTC", amount)
-	return bitcoin_average.Convert(bitcoins, "CZK")
+func getAccountValue(account money.AccountEntry) money.Money {
+	stocks, currencies := loadPortfolio(account.Path)
+	currencies = append(currencies, getValueOfStocks(stocks))
+	return sumMoney(currencies, "CZK")
 }
 
 func main() {
@@ -98,23 +97,24 @@ func main() {
 
 	currency_layer.Init()
 
-	switch *mode {
-	case "broker":
-		brokerAccount := GetBrokerAccountValue()
-		fmt.Printf("%.2f\n", brokerAccount.Amount)
-	case "bitcoin":
-		bitcoins := GetBitcoinValue()
-		fmt.Printf("%.2f\n", bitcoins.Amount)
-	case "chase":
-		chase := GetChaseAccountValue()
-		fmt.Printf("%.2f\n", chase.Amount)
-	case "table":
-		table := tablewriter.NewWriter(os.Stdout)
-		table.Append([]string{"Bitcoiny", GetBitcoinValue().String()})
-		table.Append([]string{"Akcie", GetBrokerAccountValue().String()})
-		table.Append([]string{"Chase účet", GetChaseAccountValue().String()})
-		table.Render()
-	default:
-		panic("bad mode")
+	var accounts []money.AccountEntry = money.LoadAccounts()
+
+	for _, account := range accounts {
+		if account.Code == *mode {
+			value := getAccountValue(account)
+			fmt.Printf("%.2f\n", value.Amount)
+			return
+		}
 	}
+
+	if *mode == "table" {
+		table := tablewriter.NewWriter(os.Stdout)
+		for _, account := range accounts {
+			table.Append([]string{account.Name, getAccountValue(account).String()})
+		}
+		table.Render()
+		return
+	}
+
+	panic("bad mode")
 }

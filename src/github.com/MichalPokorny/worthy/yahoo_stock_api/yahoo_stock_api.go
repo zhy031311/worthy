@@ -36,6 +36,10 @@ const endpoint = "http://download.finance.yahoo.com/d/quotes.csv"
 
 func GetTickers(symbols []string) ([]stock.Ticker, error) {
 	tickers := make([]stock.Ticker, len(symbols))
+	if len(symbols) == 0 {
+		return tickers, nil
+	}
+
 	values := url.Values{}
 	values.Add("s", strings.Join(symbols, "+"))
 	values.Add("f", giveSymbol+givePreviousClose)

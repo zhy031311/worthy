@@ -74,7 +74,17 @@ func getConversionFromResponse(body []byte, key string) float64 {
 	if err := json.Unmarshal(body, &jsonBody); err != nil {
 		panic(err)
 	}
-	return jsonBody["quotes"].(map[string]interface{})[key].(float64)
+	fmt.Println(jsonBody)
+	ok := jsonBody["success"].(bool)
+	if !ok {
+		panic("Error converting " + key)
+	}
+	fmt.Println("Converting: " + key)
+	quote := jsonBody["quotes"].(map[string]interface{})[key]
+	if quote == nil {
+		panic("Quote is nil for " + key)
+	}
+	return quote.(float64)
 }
 
 func getConversion(from string, to string) float64 {
@@ -115,4 +125,8 @@ func getConversion(from string, to string) float64 {
 func Convert(from money.Money, to string) money.Money {
 	factor := getConversion(from.Currency, to)
 	return money.New(to, from.Amount*factor)
+}
+
+func CanConvert(from money.Money, to string) bool {
+	return from.Currency != "BTC"
 }

@@ -1,9 +1,10 @@
 package util
 
 import (
+	"encoding/json"
+	"io/ioutil"
 	"os"
 	"os/user"
-	"io/ioutil"
 	"strconv"
 	"strings"
 )
@@ -58,4 +59,10 @@ func FileExists(path string) bool {
 		return false
 	}
 	return true
+}
+
+func LoadJSONFileOrDie(path string, v interface{}) {
+	if err := json.Unmarshal(ReadFileBytes(path), v); err != nil {
+		panic(err)
+	}
 }

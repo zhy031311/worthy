@@ -43,3 +43,7 @@ func Convert(from money.Money, to string) money.Money {
 	factor := getConversion(from.Currency, to)
 	return money.New(to, from.Amount*factor)
 }
+
+func CanConvert(from money.Money, to string) bool {
+	return from.Currency == "BTC"
+}
