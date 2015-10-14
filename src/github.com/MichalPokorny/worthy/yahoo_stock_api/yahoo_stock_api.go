@@ -1,16 +1,61 @@
 package yahoo_stock_api
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/MichalPokorny/worthy/money"
 	"github.com/MichalPokorny/worthy/stock"
+	"github.com/MichalPokorny/worthy/util"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
+	"time"
 )
+
+const cachePath = "~/Dropbox/finance/yahoo_stock_api_cache.json"
+const cacheDuration = 10 * time.Minute
+
+type cacheItem struct {
+	Ticker    stock.Ticker `json:"ticker"`
+	Timestamp string       `json:"timestamp"`
+}
+
+type cacheType struct {
+	Tickers map[string]*cacheItem `json:"tickers"`
+}
+
+var cache cacheType
+
+func Init() {
+	if util.FileExists(cachePath) {
+		util.LoadJSONFileOrDie(cachePath, &cache)
+	} else {
+		cache.Tickers = make(map[string]*cacheItem)
+	}
+}
+
+func writeCache() {
+	// showCache()
+	// fmt.Println("writing cache")
+
+	bytes, err := json.Marshal(cache)
+	if err != nil {
+		panic(err)
+	}
+	util.WriteFile(cachePath, bytes)
+}
+
+func (item cacheItem) isTickerFresh() bool {
+	takenAt, err := time.Parse(time.RFC3339, item.Timestamp)
+	if err != nil {
+		panic(err)
+	}
+	invalidAt := takenAt.Add(cacheDuration)
+	return time.Now().Before(invalidAt)
+}
 
 func parseTicker(yahooLine string) (stock.Ticker, error) {
 	var ticker stock.Ticker
@@ -34,14 +79,45 @@ const givePreviousClose = "p"
 
 const endpoint = "http://download.finance.yahoo.com/d/quotes.csv"
 
+func (item cacheItem) isConversionFresh() bool {
+	takenAt, err := time.Parse(time.RFC3339, item.Timestamp)
+	if err != nil {
+		panic(err)
+	}
+	invalidAt := takenAt.Add(cacheDuration)
+	return time.Now().Before(invalidAt)
+}
+
 func GetTickers(symbols []string) ([]stock.Ticker, error) {
 	tickers := make([]stock.Ticker, len(symbols))
-	if len(symbols) == 0 {
+	missedIndices := make([]int, 0)
+
+	for i, symbol := range symbols {
+		needNew := true
+		if cachedTicker, cacheHit := cache.Tickers[symbol]; cacheHit {
+			if cachedTicker.isConversionFresh() {
+				// fmt.Println(symbol + ": cache hit")
+				tickers[i] = cachedTicker.Ticker
+				needNew = false
+			}
+		}
+		if needNew {
+			// fmt.Println(symbol + ": cache miss")
+			missedIndices = append(missedIndices, i)
+		}
+	}
+
+	if len(missedIndices) == 0 {
 		return tickers, nil
 	}
 
+	missedSymbols := make([]string, 0)
+	for _, i := range missedIndices {
+		missedSymbols = append(missedSymbols, symbols[i])
+	}
+
 	values := url.Values{}
-	values.Add("s", strings.Join(symbols, "+"))
+	values.Add("s", strings.Join(missedSymbols, "+"))
 	values.Add("f", giveSymbol+givePreviousClose)
 
 	requestUrl := endpoint + "?" + values.Encode()
@@ -56,13 +132,24 @@ func GetTickers(symbols []string) ([]stock.Ticker, error) {
 		return tickers, err
 	}
 	lines := strings.Split(strings.TrimSpace(string(body)), "\n")
-	if len(lines) != len(tickers) {
-		return tickers, errors.New("Num of tickers requested != num of tickers received")
+	if len(lines) != len(missedSymbols) {
+		return tickers, errors.New("Num of missed symbols != num of tickers received")
 	}
-	for i, line := range lines {
-		if tickers[i], err = parseTicker(line); err != nil {
+	for _, line := range lines {
+		var ticker stock.Ticker
+		if ticker, err = parseTicker(line); err != nil {
 			return tickers, err
 		}
+		cache.Tickers[ticker.Symbol] = &cacheItem{
+			Ticker:    ticker,
+			Timestamp: time.Now().Format(time.RFC3339),
+		}
+		for _, i := range missedIndices {
+			if symbols[i] == ticker.Symbol {
+				tickers[i] = ticker
+			}
+		}
 	}
+	writeCache()
 	return tickers, nil
 }

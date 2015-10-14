@@ -96,6 +96,7 @@ func main() {
 	flag.Parse()
 
 	currency_layer.Init()
+	yahoo_stock_api.Init()
 
 	var accounts []money.AccountEntry = money.LoadAccounts()
 

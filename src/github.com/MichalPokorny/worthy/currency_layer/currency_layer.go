@@ -32,9 +32,7 @@ var accessKey string
 
 func Init() {
 	if util.FileExists(cachePath) {
-		if err := json.Unmarshal(util.ReadFileBytes(cachePath), &cache); err != nil {
-			panic(err)
-		}
+		util.LoadJSONFileOrDie(cachePath, &cache)
 	} else {
 		cache.Conversions = make(map[string]*cacheItem)
 	}
