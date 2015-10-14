@@ -7,7 +7,8 @@ import (
 type AccountEntry struct {
 	Code string `json:"code"`
 	Name string `json:"name"`
-	Path string `json:"path"`
+	Path *string `json:"path"`
+	Value *Money `json:"value"`
 }
 
 type accountsFileData struct {

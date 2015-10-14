@@ -3,8 +3,8 @@ package money
 import "fmt"
 
 type Money struct {
-	Currency string
-	Amount   float64
+	Currency string `json:"currency"`
+	Amount   float64 `json:"amount"`
 }
 
 func New(currency string, amount float64) Money {

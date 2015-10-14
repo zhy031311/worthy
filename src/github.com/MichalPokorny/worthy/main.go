@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"flag"
 	"fmt"
 	"github.com/MichalPokorny/worthy/bitcoin_average"
@@ -38,17 +37,21 @@ func getValueOfStocks(portfolio portfolio.Portfolio) money.Money {
 	return result
 }
 
+func convert(input money.Money, target string) money.Money {
+	// TODO: multi-step conversion
+	if bitcoin_average.CanConvert(input, target) {
+		return bitcoin_average.Convert(input, target)
+	} else if currency_layer.CanConvert(input, target) {
+		return currency_layer.Convert(input, target)
+	} else {
+		panic("cannot convert " + input.Currency + " to " + target)
+	}
+}
+
 func sumMoney(inputs []money.Money, target string) money.Money {
 	total := 0.0
 	for _, item := range inputs {
-		var converted money.Money = item
-
-		// TODO: multi-step conversion
-		if bitcoin_average.CanConvert(converted, target) {
-			converted = bitcoin_average.Convert(converted, target)
-		} else if currency_layer.CanConvert(converted, target) {
-			converted = currency_layer.Convert(converted, target)
-		}
+		converted := convert(item, target)
 		if converted.Currency != target {
 			panic("conversion fail")
 		}
@@ -58,11 +61,8 @@ func sumMoney(inputs []money.Money, target string) money.Money {
 }
 
 func loadPortfolio(path string) (portfolio.Portfolio, []money.Money) {
-	body := util.ReadFileBytes(path)
 	jsonBody := make(map[string]interface{})
-	if err := json.Unmarshal(body, &jsonBody); err != nil {
-		panic(err)
-	}
+	util.LoadJSONFileOrDie(path, &jsonBody)
 
 	stocks := make(map[string]interface{})
 	if stocksField, ok := jsonBody["stocks"]; ok {
@@ -86,9 +86,15 @@ func loadPortfolio(path string) (portfolio.Portfolio, []money.Money) {
 }
 
 func getAccountValue(account money.AccountEntry) money.Money {
-	stocks, currencies := loadPortfolio(account.Path)
-	currencies = append(currencies, getValueOfStocks(stocks))
-	return sumMoney(currencies, "CZK")
+	if account.Path != nil {
+		stocks, currencies := loadPortfolio(*account.Path)
+		currencies = append(currencies, getValueOfStocks(stocks))
+		return sumMoney(currencies, "CZK")
+	} else if account.Value != nil {
+		return convert(*account.Value, "CZK")
+	} else {
+		panic("Account has no Path and no Value")
+	}
 }
 
 func main() {
