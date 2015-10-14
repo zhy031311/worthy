@@ -16,7 +16,7 @@ import (
 
 const cachePath = "~/Dropbox/finance/currency_layer_cache.json"
 const endpoint = "http://apilayer.net/api/live"
-const cacheDuration = 24 * time.Hour
+const cacheDuration = time.Day
 
 type cacheItem struct {
 	Conversion float64 `json:"conversion"`
