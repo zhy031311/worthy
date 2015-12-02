@@ -15,7 +15,7 @@ import (
 	"time"
 )
 
-const cachePath = "~/Dropbox/finance/yahoo_stock_api_cache.json"
+const cachePath = "~/dropbox/finance/yahoo_stock_api_cache.json"
 const cacheDuration = 10 * time.Minute
 
 type cacheItem struct {

@@ -15,7 +15,7 @@ type accountsFileData struct {
 	Accounts []AccountEntry `json:"accounts"`
 }
 
-var ACCOUNTS_JSON_PATH = "~/Dropbox/finance/accounts.json"
+var ACCOUNTS_JSON_PATH = "~/dropbox/finance/accounts.json"
 
 func LoadAccounts() []AccountEntry {
 	var data accountsFileData

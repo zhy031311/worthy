@@ -14,7 +14,7 @@ import (
 	"time"
 )
 
-const cachePath = "~/Dropbox/finance/currency_layer_cache.json"
+const cachePath = "~/dropbox/finance/currency_layer_cache.json"
 const endpoint = "http://apilayer.net/api/live"
 const cacheDuration = 24 * time.Hour
 
@@ -37,7 +37,7 @@ func Init() {
 		cache.Conversions = make(map[string]*cacheItem)
 	}
 
-	body := util.ReadFile("~/Dropbox/finance/currency_layer_key")
+	body := util.ReadFile("~/dropbox/finance/currency_layer_key")
 	accessKey = strings.Trim(body, "\n\r ")
 }
 
