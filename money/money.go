@@ -15,5 +15,8 @@ func New(currency string, amount float64) Money {
 }
 
 func (money Money) String() string {
+	if money.Currency == "USD" {
+		return fmt.Sprintf("$%.2f", money.Amount)
+	}
 	return fmt.Sprintf("%.2f %s", money.Amount, money.Currency)
 }

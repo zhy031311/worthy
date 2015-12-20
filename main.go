@@ -31,10 +31,7 @@ func getValueOfStocks(portfolio portfolio.Portfolio) money.Money {
 	for _, entry := range portfolio {
 		total += float64(entry.Amount) * stockValues[entry.Symbol]
 	}
-	result := money.Money{}
-	result.Currency = "USD"
-	result.Amount = total
-	return result
+	return money.Money{Currency: "USD", Amount: total}
 }
 
 func convert(input money.Money, target string) money.Money {
