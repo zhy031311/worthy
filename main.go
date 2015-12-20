@@ -46,15 +46,15 @@ func convert(input money.Money, target string) money.Money {
 }
 
 func sumMoney(inputs []money.Money, target string) money.Money {
-	total := 0.0
+	total := money.New(target, 0)
 	for _, item := range inputs {
 		converted := convert(item, target)
 		if converted.Currency != target {
 			panic("conversion fail")
 		}
-		total += converted.Amount
+		total.Add(converted)
 	}
-	return money.New(target, total)
+	return total
 }
 
 func loadPortfolio(path string) (portfolio.Portfolio, []money.Money) {
