@@ -169,7 +169,6 @@ func logNetWorth(accountsFile *money.AccountsFileData) {
 		panic(err)
 	}
 
-	fmt.Println(values)
 	w := csv.NewWriter(file)
 	if err := w.Write(values); err != nil {
 		panic(err)
@@ -192,7 +191,8 @@ func findAccount(accounts []money.AccountEntry, key string) *money.AccountEntry 
 }
 
 func main() {
-	var mode = flag.String("mode", "", "name of any account or 'table'")
+	var mode = flag.String("mode", "", "name of any account or 'table' or 'silent'")
+	var logToCsv = flag.Bool("log_to_csv", false, "log to csv, false by default")
 	flag.Parse()
 
 	currency_layer.Init()
@@ -201,23 +201,29 @@ func main() {
 	accountsFile := money.LoadAccounts()
 	var accounts []money.AccountEntry = accountsFile.Accounts
 
-	logNetWorth(&accountsFile)
-
-	matchingAccount := findAccount(accounts, *mode)
-	if matchingAccount != nil {
-		value := getAccountValue(*matchingAccount)
-		fmt.Printf("%.2f\n", value.Amount)
-		return
+	if *logToCsv {
+		logNetWorth(&accountsFile)
 	}
 
-	if *mode == "table" {
+	switch *mode {
+	case "silent":
+		break
+
+	case "table":
 		table := tablewriter.NewWriter(os.Stdout)
 		for _, account := range accounts {
 			table.Append([]string{account.Name, getAccountValue(account).String()})
 		}
 		table.Render()
-		return
-	}
+		break
 
-	panic("bad mode")
+	default:
+		matchingAccount := findAccount(accounts, *mode)
+		if matchingAccount != nil {
+			value := getAccountValue(*matchingAccount)
+			fmt.Printf("%.2f\n", value.Amount)
+		} else {
+			panic("bad mode")
+		}
+	}
 }
