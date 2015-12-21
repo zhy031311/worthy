@@ -214,6 +214,8 @@ func main() {
 		for _, account := range accounts {
 			table.Append([]string{account.Name, getAccountValue(account).String()})
 		}
+
+		table.Append([]string{"Celkem", getTotalNetWorth(accountsFile.Accounts).String()})
 		table.Render()
 		break
 
