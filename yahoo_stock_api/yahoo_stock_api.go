@@ -54,7 +54,8 @@ func (item cacheItem) isTickerFresh() bool {
 		panic(err)
 	}
 	invalidAt := takenAt.Add(cacheDuration)
-	return time.Now().Before(invalidAt)
+	isFresh := time.Now().Before(invalidAt)
+	return isFresh
 }
 
 func parseTicker(yahooLine string) (stock.Ticker, error) {

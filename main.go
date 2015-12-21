@@ -113,7 +113,6 @@ func getAccountValue(account money.AccountEntry) money.Money {
 		}
 		return money.New("CZK", total)
 	} else if account.IksPath != nil {
-		iks.ScrapePrices() // TODO: lazy
 		investment := iks.ParseInvestment(*account.IksPath)
 		return iks.GetInvestmentValue(investment)
 	} else {

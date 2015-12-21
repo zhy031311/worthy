@@ -1,5 +1,7 @@
 // Simple wrapper around https://bitcoinaverage.com/api/.
 
+// TODO: Add caching.
+
 package bitcoin_average
 
 import (

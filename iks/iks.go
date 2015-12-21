@@ -1,9 +1,11 @@
 package iks
 
 import (
+	"encoding/json"
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/MichalPokorny/worthy/money"
 	"github.com/MichalPokorny/worthy/util"
@@ -14,11 +16,39 @@ import (
 	"golang.org/x/net/html/atom"
 )
 
-// TODO: cache this
-var Prices map[string]float64
+var cache struct {
+	Prices    map[string]float64 `json:"prices"`
+	Timestamp string             `json:"timestamp"`
+}
 
-func ScrapePrices() {
-	Prices = make(map[string]float64)
+const cachePath = "~/dropbox/finance/iks_cache.json"
+const cacheDuration = 24 * time.Hour
+
+func loadCache() {
+	if util.FileExists(cachePath) {
+		util.LoadJSONFileOrDie(cachePath, &cache)
+	}
+}
+
+func writeCache() {
+	bytes, err := json.Marshal(cache)
+	if err != nil {
+		panic(err)
+	}
+	util.WriteFile(cachePath, bytes)
+}
+
+func isCacheFresh() bool {
+	takenAt, err := time.Parse(time.RFC3339, cache.Timestamp)
+	if err != nil {
+		panic(err)
+	}
+	invalidAt := takenAt.Add(cacheDuration)
+	return time.Now().Before(invalidAt)
+}
+
+func scrapePrices() {
+	cache.Prices = make(map[string]float64)
 
 	resp, err := http.Get("http://www.iks-kb.cz/web/fondy_denni_hodnoty.html")
 	if err != nil {
@@ -56,11 +86,13 @@ func ScrapePrices() {
 		priceText = strings.Replace(priceText, "\u00a0", "", -1)
 
 		var err error
-		Prices[nameText], err = strconv.ParseFloat(priceText, 64)
+		cache.Prices[nameText], err = strconv.ParseFloat(priceText, 64)
 		if err != nil {
 			panic(err)
 		}
 	}
+
+	cache.Timestamp = time.Now().Format(time.RFC3339)
 }
 
 type Investment struct {
@@ -78,9 +110,16 @@ func ParseInvestment(path string) (result Investment) {
 }
 
 func GetInvestmentValue(investment Investment) money.Money {
+	if cache.Prices == nil {
+		loadCache()
+		if cache.Prices == nil || !isCacheFresh() {
+			scrapePrices()
+			writeCache()
+		}
+	}
 	result := money.New("CZK", 0)
 	for asset, amount := range investment.Assets {
-		price, ok := Prices[asset]
+		price, ok := cache.Prices[asset]
 		if !ok {
 			panic("unknown asset: " + asset)
 		}
