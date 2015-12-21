@@ -6,6 +6,7 @@ import (
 	"github.com/MichalPokorny/worthy/bitcoin_average"
 	"github.com/MichalPokorny/worthy/currency_layer"
 	"github.com/MichalPokorny/worthy/homebank"
+	"github.com/MichalPokorny/worthy/iks"
 	"github.com/MichalPokorny/worthy/money"
 	"github.com/MichalPokorny/worthy/portfolio"
 	"github.com/MichalPokorny/worthy/util"
@@ -108,13 +109,17 @@ func getAccountValue(account money.AccountEntry) money.Money {
 			total += result.GetAccountBalance(account.Key)
 		}
 		return money.New("CZK", total)
+	} else if account.IksPath != nil {
+		iks.ScrapePrices() // TODO: lazy
+		investment := iks.ParseInvestment(*account.IksPath)
+		return iks.GetInvestmentValue(investment)
 	} else {
-		panic("Account has no Path, Value or HomebankPath")
+		panic("Account has no Path, Value, HomebankPath or IksPath")
 	}
 }
 
 func main() {
-	var mode = flag.String("mode", "", "'broker', 'broker', 'bitcoin' or 'table'")
+	var mode = flag.String("mode", "", "name of any account or 'table'")
 	flag.Parse()
 
 	currency_layer.Init()

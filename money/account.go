@@ -19,6 +19,9 @@ type AccountEntry struct {
 	// Path to Homebank file whose non-closed non-asset accounts
 	// sum up to this account's value in CZK.
 	HomebankPath *string `json:"homebank_path"`
+
+	// Path to YML file describing IKS investment.
+	IksPath *string `json:"iks_path"`
 }
 
 type accountsFileData struct {
