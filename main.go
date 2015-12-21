@@ -191,7 +191,7 @@ func findAccount(accounts []money.AccountEntry, key string) *money.AccountEntry 
 }
 
 func main() {
-	var mode = flag.String("mode", "", "name of any account or 'table' or 'silent'")
+	var mode = flag.String("mode", "table", "name of any account or 'table' or 'silent'")
 	var logToCsv = flag.Bool("log_to_csv", false, "log to csv, false by default")
 	flag.Parse()
 
