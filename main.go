@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/MichalPokorny/worthy/bitcoin_average"
 	"github.com/MichalPokorny/worthy/currency_layer"
+	"github.com/MichalPokorny/worthy/homebank"
 	"github.com/MichalPokorny/worthy/money"
 	"github.com/MichalPokorny/worthy/portfolio"
 	"github.com/MichalPokorny/worthy/util"
@@ -89,8 +90,26 @@ func getAccountValue(account money.AccountEntry) money.Money {
 		return sumMoney(currencies, "CZK")
 	} else if account.Value != nil {
 		return convert(*account.Value, "CZK")
+	} else if account.HomebankPath != nil {
+		result, err := homebank.ParseHomebankFile(util.ExpandPath(*account.HomebankPath))
+		if err != nil {
+			panic(err)
+		}
+		total := float64(0)
+		for _, account := range result.Accounts {
+			if account.Flags&homebank.FLAG_CLOSED == homebank.FLAG_CLOSED {
+				// Skip closed accounts.
+				continue
+			}
+			if account.Type == homebank.ASSETS_ACCOUNT {
+				// We manage assets accounts ourselves.
+				continue
+			}
+			total += result.GetAccountBalance(account.Key)
+		}
+		return money.New("CZK", total)
 	} else {
-		panic("Account has no Path and no Value")
+		panic("Account has no Path, Value or HomebankPath")
 	}
 }
 

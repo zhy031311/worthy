@@ -7,8 +7,18 @@ import (
 type AccountEntry struct {
 	Code string `json:"code"`
 	Name string `json:"name"`
+
+	// Pick exactly one of the following:
+
+	// Path to file that contains the portfolio in the account.
 	Path *string `json:"path"`
+
+	// Value of the account in CZK.
 	Value *Money `json:"value"`
+
+	// Path to Homebank file whose non-closed non-asset accounts
+	// sum up to this account's value in CZK.
+	HomebankPath *string `json:"homebank_path"`
 }
 
 type accountsFileData struct {
