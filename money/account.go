@@ -24,14 +24,15 @@ type AccountEntry struct {
 	IksPath *string `json:"iks_path"`
 }
 
-type accountsFileData struct {
+type AccountsFileData struct {
 	Accounts []AccountEntry `json:"accounts"`
+	CsvOrder []string       `json:"csv_order"`
+	CsvPath  string         `json:"csv_path"`
 }
 
 var ACCOUNTS_JSON_PATH = "~/dropbox/finance/accounts.json"
 
-func LoadAccounts() []AccountEntry {
-	var data accountsFileData
-	util.LoadJSONFileOrDie(ACCOUNTS_JSON_PATH, &data)
-	return data.Accounts
+func LoadAccounts() (result AccountsFileData) {
+	util.LoadJSONFileOrDie(ACCOUNTS_JSON_PATH, &result)
+	return result
 }

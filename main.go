@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/csv"
 	"flag"
 	"fmt"
 	"github.com/MichalPokorny/worthy/bitcoin_average"
@@ -13,6 +14,8 @@ import (
 	"github.com/MichalPokorny/worthy/yahoo_stock_api"
 	"github.com/olekukonko/tablewriter"
 	"os"
+	"strconv"
+	"time"
 )
 
 func getValueOfStocks(portfolio portfolio.Portfolio) money.Money {
@@ -118,6 +121,76 @@ func getAccountValue(account money.AccountEntry) money.Money {
 	}
 }
 
+func getTotalNetWorth(accounts []money.AccountEntry) money.Money {
+	total := money.New("CZK", 0)
+	for _, account := range accounts {
+		total.Add(getAccountValue(account))
+	}
+	return total
+}
+
+func logNetWorth(accountsFile *money.AccountsFileData) {
+	// TODO: move to something standardized. RFC3339?
+
+	values := make([]string, len(accountsFile.CsvOrder))
+	for i, fieldName := range accountsFile.CsvOrder {
+		var value string
+
+		switch fieldName {
+		case "_datetime":
+			timeLayout := "2006-01-02 15:04:05"
+			value = time.Now().Format(timeLayout)
+
+		case "_timestamp":
+			value = strconv.FormatInt(time.Now().Unix(), 10)
+			break
+
+		case "_sum":
+			sumValue := getTotalNetWorth(accountsFile.Accounts)
+			value = strconv.FormatFloat(sumValue.Amount, 'f', 2, 64)
+			break
+
+		default:
+			matchingAccount := findAccount(accountsFile.Accounts, fieldName)
+			if matchingAccount == nil {
+				panic("no such account: " + fieldName)
+			}
+			accountValue := getAccountValue(*matchingAccount)
+			value = strconv.FormatFloat(accountValue.Amount, 'f', 2, 64)
+			break
+		}
+
+		values[i] = value
+	}
+
+	csvPath := util.ExpandPath(accountsFile.CsvPath)
+	file, err := os.OpenFile(csvPath, os.O_WRONLY|os.O_APPEND, 0666)
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println(values)
+	w := csv.NewWriter(file)
+	if err := w.Write(values); err != nil {
+		panic(err)
+	}
+	w.Flush()
+	if err := w.Error(); err != nil {
+		panic(err)
+	}
+
+	file.Close()
+}
+
+func findAccount(accounts []money.AccountEntry, key string) *money.AccountEntry {
+	for _, account := range accounts {
+		if account.Code == key {
+			return &account
+		}
+	}
+	return nil
+}
+
 func main() {
 	var mode = flag.String("mode", "", "name of any account or 'table'")
 	flag.Parse()
@@ -125,14 +198,16 @@ func main() {
 	currency_layer.Init()
 	yahoo_stock_api.Init()
 
-	var accounts []money.AccountEntry = money.LoadAccounts()
+	accountsFile := money.LoadAccounts()
+	var accounts []money.AccountEntry = accountsFile.Accounts
 
-	for _, account := range accounts {
-		if account.Code == *mode {
-			value := getAccountValue(account)
-			fmt.Printf("%.2f\n", value.Amount)
-			return
-		}
+	logNetWorth(&accountsFile)
+
+	matchingAccount := findAccount(accounts, *mode)
+	if matchingAccount != nil {
+		value := getAccountValue(*matchingAccount)
+		fmt.Printf("%.2f\n", value.Amount)
+		return
 	}
 
 	if *mode == "table" {
