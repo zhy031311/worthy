@@ -7,6 +7,7 @@ import (
 type AccountEntry struct {
 	Code string `json:"code"`
 	Name string `json:"name"`
+	HiddenInTable bool `json:"hidden_in_table"`
 
 	// Pick exactly one of the following:
 

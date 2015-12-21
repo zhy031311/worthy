@@ -16,31 +16,28 @@ import (
 )
 
 const cachePath = "~/dropbox/finance/yahoo_stock_api_cache.json"
-const cacheDuration = 10 * time.Minute
+const cacheDuration = 1 * time.Hour
 
 type cacheItem struct {
 	Ticker    stock.Ticker `json:"ticker"`
 	Timestamp string       `json:"timestamp"`
 }
 
-type cacheType struct {
+var cache struct {
 	Tickers map[string]*cacheItem `json:"tickers"`
 }
 
-var cache cacheType
-
-func Init() {
-	if util.FileExists(cachePath) {
-		util.LoadJSONFileOrDie(cachePath, &cache)
-	} else {
-		cache.Tickers = make(map[string]*cacheItem)
+func globalInit() {
+	if cache.Tickers == nil {
+		if util.FileExists(cachePath) {
+			util.LoadJSONFileOrDie(cachePath, &cache)
+		} else {
+			cache.Tickers = make(map[string]*cacheItem)
+		}
 	}
 }
 
 func writeCache() {
-	// showCache()
-	// fmt.Println("writing cache")
-
 	bytes, err := json.Marshal(cache)
 	if err != nil {
 		panic(err)
@@ -90,6 +87,8 @@ func (item cacheItem) isConversionFresh() bool {
 }
 
 func GetTickers(symbols []string) ([]stock.Ticker, error) {
+	globalInit()
+
 	tickers := make([]stock.Ticker, len(symbols))
 	missedIndices := make([]int, 0)
 
@@ -97,13 +96,11 @@ func GetTickers(symbols []string) ([]stock.Ticker, error) {
 		needNew := true
 		if cachedTicker, cacheHit := cache.Tickers[symbol]; cacheHit {
 			if cachedTicker.isConversionFresh() {
-				// fmt.Println(symbol + ": cache hit")
 				tickers[i] = cachedTicker.Ticker
 				needNew = false
 			}
 		}
 		if needNew {
-			// fmt.Println(symbol + ": cache miss")
 			missedIndices = append(missedIndices, i)
 		}
 	}

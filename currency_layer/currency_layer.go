@@ -30,15 +30,17 @@ type cacheType struct {
 var cache cacheType
 var accessKey string
 
-func Init() {
-	if util.FileExists(cachePath) {
-		util.LoadJSONFileOrDie(cachePath, &cache)
-	} else {
-		cache.Conversions = make(map[string]*cacheItem)
-	}
+func globalInit() {
+	if cache.Conversions == nil {
+		if util.FileExists(cachePath) {
+			util.LoadJSONFileOrDie(cachePath, &cache)
+		} else {
+			cache.Conversions = make(map[string]*cacheItem)
+		}
 
-	body := util.ReadFile("~/dropbox/finance/currency_layer_key")
-	accessKey = strings.Trim(body, "\n\r ")
+		body := util.ReadFile("~/dropbox/finance/currency_layer_key")
+		accessKey = strings.Trim(body, "\n\r ")
+	}
 }
 
 func showCache() {
@@ -86,6 +88,8 @@ func getConversionFromResponse(body []byte, key string) float64 {
 }
 
 func getConversion(from string, to string) float64 {
+	globalInit()
+
 	if from == to {
 		return 1
 	}

@@ -194,9 +194,6 @@ func main() {
 	var logToCsv = flag.Bool("log_to_csv", false, "log to csv, false by default")
 	flag.Parse()
 
-	currency_layer.Init()
-	yahoo_stock_api.Init()
-
 	accountsFile := money.LoadAccounts()
 	var accounts []money.AccountEntry = accountsFile.Accounts
 
@@ -211,6 +208,9 @@ func main() {
 	case "table":
 		table := tablewriter.NewWriter(os.Stdout)
 		for _, account := range accounts {
+			if account.HiddenInTable {
+				continue
+			}
 			table.Append([]string{account.Name, getAccountValue(account).String()})
 		}
 
