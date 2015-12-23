@@ -4,7 +4,6 @@ package bitcoin_average
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/MichalPokorny/worthy/money"
 	"github.com/MichalPokorny/worthy/util"
 	"io/ioutil"
@@ -75,8 +74,6 @@ func getConversion(from string, to string) float64 {
 			return cachedTicker.Price
 		}
 	}
-
-	fmt.Printf("converting %s to %s\n", from, to)
 
 	requestUrl := endpoint + "/" + to
 	resp, err := http.Get(requestUrl)

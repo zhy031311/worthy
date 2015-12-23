@@ -74,12 +74,10 @@ func getConversionFromResponse(body []byte, key string) float64 {
 	if err := json.Unmarshal(body, &jsonBody); err != nil {
 		panic(err)
 	}
-	fmt.Println(jsonBody)
 	ok := jsonBody["success"].(bool)
 	if !ok {
 		panic("Error converting " + key)
 	}
-	fmt.Println("Converting: " + key)
 	quote := jsonBody["quotes"].(map[string]interface{})[key]
 	if quote == nil {
 		panic("Quote is nil for " + key)
