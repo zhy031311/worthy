@@ -44,6 +44,17 @@ type HomebankFile struct {
 	Operations []Operation `xml:"ope"`
 }
 
+func (homebank *HomebankFile) GetAccountOperations(accountId int) []Operation {
+	operations := make([]Operation, 0)
+	for _, operation := range homebank.Operations {
+		if operation.Account != accountId {
+			continue
+		}
+		operations = append(operations, operation)
+	}
+	return operations
+}
+
 func (homebank *HomebankFile) GetAccountBalance(accountId int) float64 {
 	var balance float64 = -1
 	for _, account := range homebank.Accounts {
