@@ -69,7 +69,7 @@ func InferDateFromFirstPart(firstPart string) (ok bool, date time.Time) {
 		ok, date = getYMDDate(parts[1])
 		return ok, date
 	default:
-		fmt.Println("first part is bad:", parts[0])
+		//fmt.Println("first part is bad:", parts[0])
 		ok = false
 	}
 

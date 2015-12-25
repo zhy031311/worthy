@@ -5,6 +5,7 @@ package homebank
 import (
 	"encoding/xml"
 	"io/ioutil"
+	"time"
 )
 
 // Values of the Type field
@@ -42,6 +43,16 @@ type HomebankFile struct {
 	// TODO: all other tags in the XML
 	Accounts   []Account   `xml:"account"`
 	Operations []Operation `xml:"ope"`
+}
+
+func ParseHomebankDate(x int) time.Time {
+	// Friday 2015-12-25 == 2290681
+	// TODO: check this better
+
+	referencePoint := time.Date(2015, time.December, 25, 12, 0, 0, 0, time.UTC)
+	delta := time.Duration(24 * (x - 735957)) * time.Hour
+	date := referencePoint.Add(delta)
+	return date
 }
 
 func (homebank *HomebankFile) GetAccountOperations(accountId int) []Operation {

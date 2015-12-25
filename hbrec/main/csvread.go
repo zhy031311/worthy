@@ -55,9 +55,10 @@ type Transaction struct {
 	AVField4 string
 }
 
+const CzechDate = "02.01.2006"
+
 func ParseCzechDate(x string) time.Time {
-	format := "02.01.2006"
-	time, err := time.Parse(format, x)
+	time, err := time.Parse(CzechDate, x)
 	if err != nil {
 		panic(err)
 	}
@@ -103,13 +104,13 @@ func ParseCSVFile(csvPath string) KBExport {
 			export.CreationDate = row[1]
 			break
 		case "Číslo účtu":
-			export.AccountNumber = row[1]
+			export.AccountNumber = strings.TrimSpace(row[1])
 			break
 		case "IBAN":
 			export.IBAN = row[1]
 			break
 		case "Název účtu":
-			export.AccountName = row[1]
+			export.AccountName = strings.TrimSpace(row[1])
 			break
 		case "Vlastní název účtu":
 			export.OwnAccountName = row[1]
@@ -145,7 +146,7 @@ func ParseCSVFile(csvPath string) KBExport {
 				transaction := Transaction{
 					SettlementDate: ParseCzechDate(row[0]),
 					OtherBankDeductionDate: row[1],
-					Counteraccount: row[2],
+					Counteraccount: strings.TrimSpace(row[2]),
 					CounteraccountName: row[3],
 					Amount: ParseAmount(row[4]),
 					OriginalAmount: ParseAmountOrEmpty(row[5]),
@@ -158,10 +159,10 @@ func ParseCSVFile(csvPath string) KBExport {
 					SystemDescription: row[12],
 					SenderIdentification: row[13],
 					ReceiverIdentification: row[14],
-					AVField1: row[15],
-					AVField2: row[16],
-					AVField3: row[17],
-					AVField4: row[18],
+					AVField1: strings.TrimSpace(row[15]),
+					AVField2: strings.TrimSpace(row[16]),
+					AVField3: strings.TrimSpace(row[17]),
+					AVField4: strings.TrimSpace(row[18]),
 				}
 				export.Transactions = append(export.Transactions, transaction)
 				break
