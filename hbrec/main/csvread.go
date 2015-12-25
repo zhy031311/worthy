@@ -4,6 +4,7 @@ package main
 // enconv -L czech -x utf8 o543thgwjfw.csv
 
 import (
+	"regexp"
 	"fmt"
 	"time"
 	"strconv"
@@ -53,6 +54,41 @@ type Transaction struct {
 	AVField2 string
 	AVField3 string
 	AVField4 string
+}
+
+func humanizeString(s string) string {
+	re := regexp.MustCompile("( +)")
+	return re.ReplaceAllString(s, " ")
+}
+
+func (transaction Transaction) HumanString() string {
+	amount := transaction.Amount
+	settled := transaction.SettlementDate.Format(CzechDate)
+	str := fmt.Sprintf("%v %s", amount, settled)
+
+	if transaction.SystemDescription != "" {
+		str += " " + transaction.SystemDescription
+	}
+	if transaction.SenderIdentification != "" {
+		str += " " + transaction.SenderIdentification
+	}
+	if transaction.ReceiverIdentification != "" {
+		str += " " + transaction.ReceiverIdentification
+	}
+	if transaction.AVField1 != "" {
+		str += " AV1=" + humanizeString(transaction.AVField1)
+	}
+	if transaction.AVField2 != "" {
+		str += " AV2=" + humanizeString(transaction.AVField2)
+	}
+	if transaction.AVField3 != "" {
+		str += " AV3=" + humanizeString(transaction.AVField3)
+	}
+	if transaction.AVField4 != "" {
+		str += " AV4=" + humanizeString(transaction.AVField4)
+	}
+	str += " [" + transaction.TransactionIdentification + "]"
+	return str
 }
 
 const CzechDate = "02.01.2006"
