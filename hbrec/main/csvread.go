@@ -11,6 +11,7 @@ import (
 	"strings"
 	"os"
 	"encoding/csv"
+	"math"
 )
 
 type KBExport struct {
@@ -152,7 +153,11 @@ func ParseCSVFile(csvPath string) KBExport {
 			export.OwnAccountName = row[1]
 			break
 		case "Počáteční zůstatek":
-			export.InitialBalance = ParseAmount(row[1])
+			if row[1] == "-" {
+				export.InitialBalance = math.NaN()
+			} else {
+				export.InitialBalance = ParseAmount(row[1])
+			}
 			break
 		// NOTE: HARD SPACE OR WHAT?! The following string is weird.
 		case "Výpis za období":
