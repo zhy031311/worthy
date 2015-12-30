@@ -16,7 +16,7 @@ const FLAG_CLOSED = 2
 
 type Account struct {
 	Key     int     `xml:"key,attr"`
-	Flags   *int     `xml:"flags,attr"`
+	Flags   *int    `xml:"flags,attr"`
 	Pos     int     `xml:"pos,attr"`
 	Type    int     `xml:"type,attr"`
 	Name    string  `xml:"name,attr"`
@@ -24,7 +24,7 @@ type Account struct {
 	Minimum int     `xml:"minimum,attr"`
 }
 
-const OPERATION_RECONCILED = 2;
+const OPERATION_RECONCILED = 2
 
 type Operation struct {
 	XMLName xml.Name `xml:"ope"`
@@ -32,46 +32,46 @@ type Operation struct {
 	Date       int     `xml:"date,attr"`
 	Amount     float64 `xml:"amount,attr"`
 	Account    int     `xml:"account,attr"`
-	DstAccount *int     `xml:"dst_account,attr"`
-	Paymode    *int     `xml:"paymode,attr"`
-	Status     *int     `xml:"st,attr"`
-	Flags *int `xml:"flags,attr"`
-	Payee *int `xml:"payee,attr"`
-	Category   *int     `xml:"category,attr"`
-	Wording    *string  `xml:"wording,attr"`
-	Info       *string  `xml:"info,attr"`
-	Kxfer *int `xml:"kxfer,attr"`
+	DstAccount *int    `xml:"dst_account,attr"`
+	Paymode    *int    `xml:"paymode,attr"`
+	Status     *int    `xml:"st,attr"`
+	Flags      *int    `xml:"flags,attr"`
+	Payee      *int    `xml:"payee,attr"`
+	Category   *int    `xml:"category,attr"`
+	Wording    *string `xml:"wording,attr"`
+	Info       *string `xml:"info,attr"`
+	Kxfer      *int    `xml:"kxfer,attr"`
 }
 
 type Category struct {
-	Key int `xml:"key,attr"`
-	Parent *int `xml:"parent,attr"`
-	Flags *int `xml:"flags,attr"`
-	Name string `xml:"name,attr"`
+	Key     int      `xml:"key,attr"`
+	Parent  *int     `xml:"parent,attr"`
+	Flags   *int     `xml:"flags,attr"`
+	Name    string   `xml:"name,attr"`
 	Budget0 *float64 `xml:"b0,attr"`
 }
 
 type Tag struct {
-	Key int `xml:"key,attr"`
+	Key  int    `xml:"key,attr"`
 	Name string `xml:"name,attr"`
 }
 
 type Payee struct {
-	Key int `xml:"key,attr"`
+	Key  int    `xml:"key,attr"`
 	Name string `xml:"name,attr"`
 }
 
 type Properties struct {
-	Title string `xml:"title,attr"`
-	AutoSmode int `xml:"auto_smode,attr"`
-	AutoWeekday int `xml:"auto_weekday,attr"`
+	Title       string `xml:"title,attr"`
+	AutoSmode   int    `xml:"auto_smode,attr"`
+	AutoWeekday int    `xml:"auto_weekday,attr"`
 }
 
 type Assignment struct {
-	Key int `xml:"key,attr"`
-	Flags int `xml:"flags,attr"`
-	Name string `xml:"name,attr"`
-	Category int `xml:"category,attr"`
+	Key      int    `xml:"key,attr"`
+	Flags    int    `xml:"flags,attr"`
+	Name     string `xml:"name,attr"`
+	Category int    `xml:"category,attr"`
 }
 
 type HomebankFile struct {
@@ -83,12 +83,12 @@ type HomebankFile struct {
 	D       string `xml:"d,attr"` // TODO: what's this?
 	// TODO: <properties>
 	// TODO: all other tags in the XML
-	Accounts   []Account   `xml:"account"`
-	Payees []Payee `xml:"pay"`
-	Categories []Category `xml:"cat"`
-	Tags []Tag `xml:"tag"`
+	Accounts    []Account    `xml:"account"`
+	Payees      []Payee      `xml:"pay"`
+	Categories  []Category   `xml:"cat"`
+	Tags        []Tag        `xml:"tag"`
 	Assignments []Assignment `xml:"asg"`
-	Operations []Operation `xml:"ope"`
+	Operations  []Operation  `xml:"ope"`
 }
 
 func ParseHomebankDate(x int) time.Time {
@@ -97,7 +97,7 @@ func ParseHomebankDate(x int) time.Time {
 	referencePoint := time.Date(2015, time.December, 25, 12, 0, 0, 0, time.UTC)
 	referenceI := 735957
 
-	delta := time.Duration(24 * (x - referenceI)) * time.Hour
+	delta := time.Duration(24*(x-referenceI)) * time.Hour
 	date := referencePoint.Add(delta)
 	return date
 }
