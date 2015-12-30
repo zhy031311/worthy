@@ -28,12 +28,19 @@ func (supplement operationSupplement) isBefore(cutoff time.Time) bool {
 }
 
 func getSupplement(operation homebank.Operation) operationSupplement {
-	id := operation.Wording
+	if operation.Wording == nil {
+		return operationSupplement{
+			ids: []string{},
+			multipleTransactions: false,
+		}
+	}
+
+	id := *operation.Wording
 
 	for _, sep := range []string{";;", " ++ ", ", "} {
-		if strings.Contains(operation.Wording, sep) {
+		if strings.Contains(*operation.Wording, sep) {
 			return operationSupplement{
-				ids: strings.Split(operation.Wording, sep),
+				ids: strings.Split(*operation.Wording, sep),
 				multipleTransactions: true,
 			}
 		}
@@ -42,7 +49,7 @@ func getSupplement(operation homebank.Operation) operationSupplement {
 	// TODO: multiple operations matchingn with single transaction
 	// "(1/2) ..."
 	for _, header := range []string{"(1/2) ", "(2/2) "} {
-		if len(id) > len(header) &&len(id) > len(header) && id[0:len(header)] == header {
+		if len(id) > len(header) && len(id) > len(header) && id[0:len(header)] == header {
 			txid := id[len(header):]
 			return operationSupplement{
 				ids: []string{txid},
@@ -54,8 +61,40 @@ func getSupplement(operation homebank.Operation) operationSupplement {
 	return operationSupplement{ids: []string{id}}
 }
 
+func makePairingOperation(transaction Transaction) *homebank.Operation {
+	reconcileTag := " (reconciled by hbrec " + time.Now().Format("2006-01-02") + ")"
+
+	info := transaction.SystemDescription + reconcileTag
+	status := homebank.OPERATION_RECONCILED
+
+	var category *int
+
+	if strings.Contains(info, "Odměna za služby") || strings.Contains(info, "Výběr z bankomatu - poplatek") || strings.Contains(info, "Dotaz na zůstatek v bankomatu") {
+		i := 8
+		category = &i  // service charge
+	} else if strings.Contains(transaction.ReceiverIdentification, "BONUS ZA VÝBĚR ATM KB") {
+		i := 8
+		category = &i  // service charge
+		info = "Bonus za výběr z ATM" + reconcileTag
+	} else {
+		fmt.Println("! no inferred category !")
+		return nil
+	}
+
+	return &homebank.Operation{
+		// TODO: infer date instead
+		Date: homebank.DateToHomebank(transaction.SettlementDate),
+		Amount: transaction.Amount,
+		Wording: &transaction.TransactionIdentification,
+		Info: &info,
+		Status: &status,
+		Category: category,
+	}
+}
+
 func main() {
-	export := ParseCSVFile("/home/prvak/dropbox/finance/vypisy/437531160267_20140804_20151223.csv")
+	// export := ParseCSVFile("/home/prvak/dropbox/finance/vypisy/437531160267_20140804_20151223.csv")
+	export := ParseCSVFile("/home/prvak/dropbox/finance/vypisy/2015-12-30.csv")
 
 	// transaction ID => Homebank operation
 	idToHomebank := make(map[string][]homebank.Operation)
@@ -135,6 +174,7 @@ func main() {
 	}
 
 	fmt.Println("In KB, but missing in Homebank:")
+	suggestedOperations := make([]homebank.Operation, 0)
 	for _, transaction := range export.Transactions {
 		id := transaction.TransactionIdentification
 
@@ -147,6 +187,15 @@ func main() {
 		//fmt.Printf("unpaired: %v settlement=%v id=[%v] %v %v\n", transaction.Amount, transaction.SettlementDate.Format(CzechDate), transaction.TransactionIdentification, transaction.SystemDescription, transaction.SenderIdentification)
 		//fmt.Printf("%+v\n", transaction)
 		fmt.Printf("unpaired: %s\n", transaction.HumanString())
+
+		op := makePairingOperation(transaction)
+		if op != nil {
+			op.Account = accountKey
+			if homebank.ParseHomebankDate(op.Date).Format(CzechDate) != transaction.SettlementDate.Format(CzechDate) {
+				panic("fail in settlement")
+			}
+			suggestedOperations = append(suggestedOperations, *op)
+		}
 	}
 
 	for id, operations := range idToHomebank {
@@ -167,4 +216,13 @@ func main() {
 		}
 		fmt.Println(id, sum, transaction.Amount)
 	}
+
+	if len(suggestedOperations) > 0 {
+		fmt.Println("Suggested additions:")
+		for _, op := range suggestedOperations {
+			fmt.Printf("%s\n", op.GetXml())
+		}
+	}
+
+	//homebank.WriteHomebankFile(accounting, "/home/prvak/out.xhb")
 }

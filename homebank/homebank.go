@@ -16,43 +16,101 @@ const FLAG_CLOSED = 2
 
 type Account struct {
 	Key     int     `xml:"key,attr"`
+	Flags   *int     `xml:"flags,attr"`
 	Pos     int     `xml:"pos,attr"`
 	Type    int     `xml:"type,attr"`
 	Name    string  `xml:"name,attr"`
 	Initial float64 `xml:"initial,attr"`
 	Minimum int     `xml:"minimum,attr"`
-	Flags   int     `xml:"flags,attr"`
 }
 
+const OPERATION_RECONCILED = 2;
+
 type Operation struct {
+	XMLName xml.Name `xml:"ope"`
+
 	Date       int     `xml:"date,attr"`
 	Amount     float64 `xml:"amount,attr"`
 	Account    int     `xml:"account,attr"`
-	Paymode    int     `xml:"paymode,attr"`
-	DstAccount int     `xml:"dst_account,attr"`
-	Status     int     `xml:"st,attr"`
-	Category   int     `xml:"category,attr"`
-	Wording    string  `xml:"wording,attr"`
-	Info       string  `xml:"info,attr"`
+	DstAccount *int     `xml:"dst_account,attr"`
+	Paymode    *int     `xml:"paymode,attr"`
+	Status     *int     `xml:"st,attr"`
+	Flags *int `xml:"flags,attr"`
+	Payee *int `xml:"payee,attr"`
+	Category   *int     `xml:"category,attr"`
+	Wording    *string  `xml:"wording,attr"`
+	Info       *string  `xml:"info,attr"`
+	Kxfer *int `xml:"kxfer,attr"`
+}
+
+type Category struct {
+	Key int `xml:"key,attr"`
+	Parent *int `xml:"parent,attr"`
+	Flags *int `xml:"flags,attr"`
+	Name string `xml:"name,attr"`
+	Budget0 *float64 `xml:"b0,attr"`
+}
+
+type Tag struct {
+	Key int `xml:"key,attr"`
+	Name string `xml:"name,attr"`
+}
+
+type Payee struct {
+	Key int `xml:"key,attr"`
+	Name string `xml:"name,attr"`
+}
+
+type Properties struct {
+	Title string `xml:"title,attr"`
+	AutoSmode int `xml:"auto_smode,attr"`
+	AutoWeekday int `xml:"auto_weekday,attr"`
+}
+
+type Assignment struct {
+	Key int `xml:"key,attr"`
+	Flags int `xml:"flags,attr"`
+	Name string `xml:"name,attr"`
+	Category int `xml:"category,attr"`
 }
 
 type HomebankFile struct {
+	XMLName xml.Name `xml:"homebank"`
+
+	Properties Properties `xml:"properties"`
+
 	Version string `xml:"v,attr"`
 	D       string `xml:"d,attr"` // TODO: what's this?
 	// TODO: <properties>
 	// TODO: all other tags in the XML
 	Accounts   []Account   `xml:"account"`
+	Payees []Payee `xml:"pay"`
+	Categories []Category `xml:"cat"`
+	Tags []Tag `xml:"tag"`
+	Assignments []Assignment `xml:"asg"`
 	Operations []Operation `xml:"ope"`
 }
 
 func ParseHomebankDate(x int) time.Time {
 	// Friday 2015-12-25 == 2290681
 	// TODO: check this better
-
 	referencePoint := time.Date(2015, time.December, 25, 12, 0, 0, 0, time.UTC)
-	delta := time.Duration(24 * (x - 735957)) * time.Hour
+	referenceI := 735957
+
+	delta := time.Duration(24 * (x - referenceI)) * time.Hour
 	date := referencePoint.Add(delta)
 	return date
+}
+
+func DateToHomebank(x time.Time) int {
+	// Friday 2015-12-25 == 2290681
+	// TODO: check this better
+	referencePoint := time.Date(2015, time.December, 25, 12, 0, 0, 0, time.UTC)
+	referenceI := 735957
+
+	delta := x.Sub(referencePoint)
+	daysElapsed := int(delta / (time.Hour * 24))
+	return daysElapsed + referenceI
 }
 
 func (homebank *HomebankFile) GetAccountOperations(accountId int) []Operation {
@@ -94,6 +152,25 @@ func ParseHomebankFile(path string) (result HomebankFile, err error) {
 	}
 	err = xml.Unmarshal(bytes, &result)
 	return result, err
+}
+
+func (operation Operation) GetXml() string {
+	bytes, err := xml.Marshal(operation)
+	if err != nil {
+		panic(err)
+	}
+	return string(bytes)
+}
+
+func WriteHomebankFile(homebank HomebankFile, path string) {
+	bytes, err := xml.MarshalIndent(homebank, " ", "")
+	if err != nil {
+		panic(err)
+	}
+	err = ioutil.WriteFile(path, bytes, 0644)
+	if err != nil {
+		panic(err)
+	}
 }
 
 /*
