@@ -6,6 +6,7 @@ import (
 	"encoding/xml"
 	"io/ioutil"
 	"time"
+	"strconv"
 )
 
 // Values of the Type field
@@ -92,10 +93,13 @@ type HomebankFile struct {
 }
 
 func ParseHomebankDate(x int) time.Time {
-	// Friday 2015-12-25 == 2290681
+	// Friday 2015-12-25 == 735957
 	// TODO: check this better
 	referencePoint := time.Date(2015, time.December, 25, 12, 0, 0, 0, time.UTC)
 	referenceI := 735957
+
+	// TODO: 735962 == 2015-12-30
+	// TODO: 735963 == 2015-12-31
 
 	delta := time.Duration(24*(x-referenceI)) * time.Hour
 	date := referencePoint.Add(delta)
@@ -105,12 +109,23 @@ func ParseHomebankDate(x int) time.Time {
 func DateToHomebank(x time.Time) int {
 	// Friday 2015-12-25 == 2290681
 	// TODO: check this better
+
+	x = time.Date(x.Year(), x.Month(), x.Day(), 12, 0, 0, 0, time.UTC)
+
 	referencePoint := time.Date(2015, time.December, 25, 12, 0, 0, 0, time.UTC)
 	referenceI := 735957
 
 	delta := x.Sub(referencePoint)
 	daysElapsed := int(delta / (time.Hour * 24))
-	return daysElapsed + referenceI
+
+	homebankDate := daysElapsed + referenceI
+
+	CzechDate := "02.01.2006"
+	if ParseHomebankDate(homebankDate).Format(CzechDate) != x.Format(CzechDate) {
+		panic("fail in settlement: " + x.Format(CzechDate) + " => " + strconv.Itoa(homebankDate) + " => " + ParseHomebankDate(homebankDate).Format(CzechDate))
+	}
+
+	return homebankDate
 }
 
 func (homebank *HomebankFile) GetAccountOperations(accountId int) []Operation {

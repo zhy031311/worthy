@@ -101,6 +101,7 @@ func loadTransactions() (rangeBegin time.Time, transactions []Transaction) {
 	}
 	rangeBegin = time.Now()
 	transactions = make([]Transaction, 0)
+	transactionsById := make(map[string]bool)
 	for _, file := range files {
 		path := baseDir + "/" + file.Name()
 		export := ParseCSVFile(path)
@@ -108,7 +109,13 @@ func loadTransactions() (rangeBegin time.Time, transactions []Transaction) {
 		if export.RangeBegin.Before(rangeBegin) {
 			rangeBegin = export.RangeBegin
 		}
-		transactions = append(transactions, export.Transactions...)
+
+		for _, transaction := range export.Transactions {
+			if _, ok := transactionsById[transaction.TransactionIdentification]; !ok {
+				transactionsById[transaction.TransactionIdentification] = true
+				transactions = append(transactions, transaction)
+			}
+		}
 	}
 	return rangeBegin, transactions
 }
@@ -211,9 +218,6 @@ func main() {
 		op := makePairingOperation(transaction)
 		if op != nil {
 			op.Account = accountKey
-			if homebank.ParseHomebankDate(op.Date).Format(CzechDate) != transaction.SettlementDate.Format(CzechDate) {
-				panic("fail in settlement")
-			}
 			suggestedOperations = append(suggestedOperations, *op)
 		}
 	}
