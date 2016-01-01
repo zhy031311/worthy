@@ -1,6 +1,7 @@
 package main
 
 import (
+	"io/ioutil"
 	"math"
 	"time"
 	"github.com/MichalPokorny/worthy/homebank"
@@ -92,9 +93,28 @@ func makePairingOperation(transaction Transaction) *homebank.Operation {
 	}
 }
 
+func loadTransactions() (rangeBegin time.Time, transactions []Transaction) {
+	baseDir := "/home/prvak/dropbox/finance/vypisy"
+	files, err := ioutil.ReadDir(baseDir)
+	if err != nil {
+		panic(err)
+	}
+	rangeBegin = time.Now()
+	transactions = make([]Transaction, 0)
+	for _, file := range files {
+		path := baseDir + "/" + file.Name()
+		export := ParseCSVFile(path)
+
+		if export.RangeBegin.Before(rangeBegin) {
+			rangeBegin = export.RangeBegin
+		}
+		transactions = append(transactions, export.Transactions...)
+	}
+	return rangeBegin, transactions
+}
+
 func main() {
-	// export := ParseCSVFile("/home/prvak/dropbox/finance/vypisy/437531160267_20140804_20151223.csv")
-	export := ParseCSVFile("/home/prvak/dropbox/finance/vypisy/2015-12-30.csv")
+	rangeBegin, transactions := loadTransactions()
 
 	// transaction ID => Homebank operation
 	idToHomebank := make(map[string][]homebank.Operation)
@@ -106,7 +126,7 @@ func main() {
 	}
 
 	transactionByIdentification := make(map[string]Transaction)
-	for _, transaction := range export.Transactions {
+	for _, transaction := range transactions {
 		transactionByIdentification[transaction.TransactionIdentification] = transaction
 	}
 
@@ -144,12 +164,12 @@ func main() {
 
 		isBefore := false
 
-		if supplement.isBefore(export.RangeBegin) {
+		if supplement.isBefore(rangeBegin) {
 			// operation took place before export
 			isBefore = true
 		}
 
-		if homebank.ParseHomebankDate(operation.Date).Before(export.RangeBegin) {
+		if homebank.ParseHomebankDate(operation.Date).Before(rangeBegin) {
 			// date in Homebank is before export
 			isBefore = true
 		}
@@ -175,7 +195,7 @@ func main() {
 
 	fmt.Println("In KB, but missing in Homebank:")
 	suggestedOperations := make([]homebank.Operation, 0)
-	for _, transaction := range export.Transactions {
+	for _, transaction := range transactions {
 		id := transaction.TransactionIdentification
 
 		_, ok := operationsHaveIdentification[id]
