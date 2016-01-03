@@ -31,6 +31,9 @@ type KBExport struct {
 	TotalPlus float64
 	FinalBalance float64
 
+	ExportNumber string
+	PreviousExportFromDate string
+
 	Transactions []Transaction
 };
 
@@ -175,10 +178,24 @@ func ParseCSVFile(csvPath string) KBExport {
 			}
 			export.NumberOfItems = value
 			break
+		case "Celkem odepsáno (-)":
+			export.TotalMinus = ParseAmount(row[1])
+			break
+		case "Celkem připsáno (+)":
+			export.TotalPlus = ParseAmount(row[1])
+			break
+		case "Konečný zůstatek":
+			export.FinalBalance = ParseAmount(row[1])
+			break
+		case "Číslo výpisu":
+			export.ExportNumber = row[1]
+			break
+
+		// NOTE: probably weird whitespace below.
+		case "Předchozí výpis ze dne":
+			export.PreviousExportFromDate = row[1]
+			break
 		default:
-			if len(row) == 3 {
-				fmt.Println(row)
-			}
 			if len(row) == 20 && row[0] != "Datum splatnosti" {
 				//for i, thing := range row {
 				//	fmt.Println(i, thing)
@@ -207,6 +224,10 @@ func ParseCSVFile(csvPath string) KBExport {
 				}
 				export.Transactions = append(export.Transactions, transaction)
 				break
+			} else if row[0] == "MojeBanka, export transakční historie" || row[0] == "Datum splatnosti" {
+				// Header rows, ignored.
+			} else {
+				fmt.Println("Unparsed row:", row)
 			}
 		}
 	}

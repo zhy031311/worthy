@@ -73,7 +73,7 @@ func makePairingOperation(transaction Transaction) *homebank.Operation {
 	if strings.Contains(info, "Odměna za služby") || strings.Contains(info, "Výběr z bankomatu - poplatek") || strings.Contains(info, "Dotaz na zůstatek v bankomatu") {
 		i := 8
 		category = &i  // service charge
-	} else if strings.Contains(transaction.ReceiverIdentification, "BONUS ZA VÝBĚR ATM KB") {
+	} else if strings.Contains(transaction.SenderIdentification, "BONUS ZA VÝBĚR ATM KB") {
 		i := 8
 		category = &i  // service charge
 		info = "Bonus za výběr z ATM" + reconcileTag
@@ -188,7 +188,7 @@ func main() {
 
 		if pairedCount < len(supplement.ids) {
 			if len(supplement.ids) == 1 && pairedCount == 0 {
-				fmt.Printf("unpaired: %v %v memo=%s %s", homebank.ParseHomebankDate(operation.Date), operation.Amount, operation.Info, operation.Wording)
+				fmt.Printf("unpaired: %v %v memo=%s %s", homebank.ParseHomebankDate(operation.Date), operation.Amount, *operation.Info, *operation.Wording)
 				ok, date := InferDateFromId(supplement.ids[0])
 				if ok {
 					fmt.Printf(" inferred date %v", date)
