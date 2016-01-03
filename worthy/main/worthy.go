@@ -101,7 +101,7 @@ func getAccountValue(account money.AccountEntry) money.Money {
 		}
 		total := float64(0)
 		for _, account := range result.Accounts {
-			if account.Flags&homebank.FLAG_CLOSED == homebank.FLAG_CLOSED {
+			if account.Flags != nil && (*account.Flags)&homebank.FLAG_CLOSED == homebank.FLAG_CLOSED {
 				// Skip closed accounts.
 				continue
 			}
