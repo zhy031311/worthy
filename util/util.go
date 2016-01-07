@@ -66,3 +66,11 @@ func LoadJSONFileOrDie(path string, v interface{}) {
 		panic(err)
 	}
 }
+
+func WriteJSONFileOrDie(path string, v interface{}) {
+	bytes, err := json.Marshal(v)
+	if err != nil {
+		panic(err)
+	}
+	WriteFile(path, bytes)
+}

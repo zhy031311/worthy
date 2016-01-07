@@ -1,9 +1,12 @@
 package yahoo_stock_api
 
 import (
+	"os"
 	"encoding/json"
 	"errors"
 	"fmt"
+	_ "github.com/mattn/go-yql"
+	"database/sql"
 	"github.com/MichalPokorny/worthy/money"
 	"github.com/MichalPokorny/worthy/stock"
 	"github.com/MichalPokorny/worthy/util"
@@ -148,4 +151,59 @@ func GetTickers(symbols []string) ([]stock.Ticker, error) {
 	}
 	writeCache()
 	return tickers, nil
+}
+
+func toFloat(str string) float64 {
+	x, err := strconv.ParseFloat(str, 64)
+	if err != nil {
+		panic(err)
+	}
+	return x
+}
+
+type priceCache struct {
+	Days []stock.TradingDay
+}
+
+func GetHistoricalPrices(symbol string, startDate string, endDate string) []stock.TradingDay {
+	key := fmt.Sprintf("%s_%s_%s", symbol, startDate, endDate)
+	path := "/home/prvak/dropbox/finance/stock_history/" + key + ".json"
+	if _, err := os.Stat(path); err == nil {
+		var cachedResult priceCache
+		util.LoadJSONFileOrDie(path, &cachedResult)
+		return cachedResult.Days
+	}
+
+	db, _ := sql.Open("yql", "||store://datatables.org/alltableswithkeys")
+	stmt, err := db.Query(
+		"select * from yahoo.finance.historicaldata where symbol=? and startDate=? and endDate=?",
+		symbol, startDate, endDate)
+	if err != nil {
+		panic(err)
+	}
+	days := make([]stock.TradingDay, 0)
+	for stmt.Next() {
+		var data map[string]interface{}
+		stmt.Scan(&data)
+
+		day := stock.TradingDay{
+			Symbol: data["Symbol"].(string),
+			Date: data["Date"].(string),
+			Open: toFloat(data["Open"].(string)),
+			High: toFloat(data["High"].(string)),
+			Low: toFloat(data["Low"].(string)),
+			Close: toFloat(data["Close"].(string)),
+			AdjustedClose: toFloat(data["Adj_Close"].(string)),
+		}
+		days = append(days, day)
+	}
+
+	// Reverse the days (earliest first)
+	for i := 0; i < len(days) / 2; i++ {
+		days[i], days[len(days) - 1 - i] = days[len(days) - 1 - i], days[i]
+	}
+
+	cachedResult := priceCache{Days: days}
+	util.WriteJSONFileOrDie(path, cachedResult)
+	return days
 }
