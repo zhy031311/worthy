@@ -23,7 +23,7 @@ var cache struct {
 	Tickers map[string]*cacheItem `json:"tickers"`
 }
 
-func initCache() {
+func init() {
 	if cache.Tickers == nil {
 		if util.FileExists(cachePath) {
 			util.LoadJSONFileOrDie(cachePath, &cache)
