@@ -27,7 +27,7 @@ var cache struct {
 	Tickers map[string]*cacheItem `json:"tickers"`
 }
 
-func globalInit() {
+func init() {
 	if cache.Tickers == nil {
 		if util.FileExists(cachePath) {
 			util.LoadJSONFileOrDie(cachePath, &cache)
@@ -87,8 +87,6 @@ func (item cacheItem) isConversionFresh() bool {
 }
 
 func GetTickers(symbols []string) ([]stock.Ticker, error) {
-	globalInit()
-
 	tickers := make([]stock.Ticker, len(symbols))
 	missedIndices := make([]int, 0)
 
