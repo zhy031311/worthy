@@ -175,6 +175,7 @@ func GetHistoricalPrices(symbol string, startDate string, endDate string) []stoc
 	}
 
 	db, _ := sql.Open("yql", "||store://datatables.org/alltableswithkeys")
+	defer db.Close()
 	stmt, err := db.Query(
 		"select * from yahoo.finance.historicaldata where symbol=? and startDate=? and endDate=?",
 		symbol, startDate, endDate)
