@@ -30,6 +30,12 @@ var cache struct {
 	Tickers map[string]*cacheItem `json:"tickers"`
 }
 
+var stockHistoryCachePath string = "/home/prvak/dropbox/finance/stock_history"
+
+func SetHistoryCachePath(path string) {
+	stockHistoryCachePath = path
+}
+
 func init() {
 	if cache.Tickers == nil {
 		if util.FileExists(cachePath) {
@@ -167,7 +173,7 @@ type priceCache struct {
 
 func GetHistoricalPrices(symbol string, startDate string, endDate string) []stock.TradingDay {
 	key := fmt.Sprintf("%s_%s_%s", symbol, startDate, endDate)
-	path := "/home/prvak/dropbox/finance/stock_history/" + key + ".json"
+	path := stockHistoryCachePath + "/" + key + ".json"
 	if _, err := os.Stat(path); err == nil {
 		var cachedResult priceCache
 		util.LoadJSONFileOrDie(path, &cachedResult)
