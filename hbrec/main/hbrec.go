@@ -70,7 +70,7 @@ func makePairingOperation(transaction Transaction) *homebank.Operation {
 
 	var category *int
 
-	if strings.Contains(info, "Odměna za služby") || strings.Contains(info, "Výběr z bankomatu - poplatek") || strings.Contains(info, "Dotaz na zůstatek v bankomatu") {
+	if strings.Contains(info, "Odměna za služby") || strings.Contains(info, "Výběr z bankomatu - poplatek") || strings.Contains(info, "Dotaz na zůstatek v bankomatu") || strings.Contains(transaction.SenderIdentification, "POPLATEK ZA POLOŽKY") {
 		i := 8
 		category = &i  // service charge
 	} else if strings.Contains(transaction.SenderIdentification, "BONUS ZA VÝBĚR ATM KB") {
