@@ -63,8 +63,6 @@ func (item cacheItem) isConversionFresh() bool {
 const endpoint = "https://api.bitcoinaverage.com/ticker/global/"
 
 func getConversion(from string, to string) float64 {
-	initCache()
-
 	if from != "BTC" {
 		panic("Can only convert from BTC.")
 	}

@@ -12,6 +12,7 @@ import (
 	"github.com/MichalPokorny/worthy/portfolio"
 	"github.com/MichalPokorny/worthy/util"
 	"github.com/MichalPokorny/worthy/yahoo_stock_api"
+	"github.com/MichalPokorny/worthy/blockchain_info_api"
 	"github.com/olekukonko/tablewriter"
 	"os"
 	"strconv"
