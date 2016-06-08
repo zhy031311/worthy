@@ -62,7 +62,10 @@ func getSupplement(operation homebank.Operation) operationSupplement {
 	return operationSupplement{ids: []string{id}}
 }
 
-func makePairingOperation(transaction Transaction) *homebank.Operation {
+const accountKey = 2 // "KB bezny"
+const walletKey = 1 // "penezenka"
+
+func makePairingOperation(transaction Transaction, maxKxfer *int) []homebank.Operation {
 	reconcileTag := " (reconciled by hbrec " + time.Now().Format("2006-01-02") + ")"
 
 	info := transaction.SystemDescription + reconcileTag
@@ -80,6 +83,7 @@ func makePairingOperation(transaction Transaction) *homebank.Operation {
 	}
 
 	var category *int
+	var paymode *int
 
 	if strings.Contains(info, "Odměna za služby") || strings.Contains(info, "Výběr z bankomatu - poplatek") || strings.Contains(info, "Dotaz na zůstatek v bankomatu") || strings.Contains(transaction.SenderIdentification, "POPLATEK ZA POLOŽKY") {
 		i := 8
@@ -100,6 +104,9 @@ func makePairingOperation(transaction Transaction) *homebank.Operation {
 		i := 51
 		category = &i  // hobbies & leisure
 		info = "cajovna (" + transaction.AVField1 + ")" + reconcileTag
+
+		j := homebank.PAYMODE_CC
+		paymode = &j
 	} else if strings.Contains(transaction.SenderIdentification, "DOBITI - O2") {
 		i := 11
 		category = &i  // dobiti mobilu
@@ -108,24 +115,66 @@ func makePairingOperation(transaction Transaction) *homebank.Operation {
 		i := 132
 		category = &i  // decin <=> praha
 		info = "jizdenka z Decina do Prahy" + reconcileTag
+
+		j := homebank.PAYMODE_CC
+		paymode = &j
 	} else if strings.Contains(transaction.AVField1, "CD PRAHA-HOLESOVICE") && amount <= -120 && amount >= -150 {
 		i := 132
 		category = &i  // decin <=> praha
 		info = "jizdenka z Prahy do Decina" + reconcileTag
+
+		j := homebank.PAYMODE_CC
+		paymode = &j
+	} else if strings.Contains(info, "Výběr hotovosti z bankomatu") {
+		kxfer := (*maxKxfer) + 1
+		*maxKxfer += 1
+
+		j := homebank.PAYMODE_CROSSTRANSFER
+		paymode = &j
+		from := accountKey
+		to := walletKey
+		withdraw := homebank.Operation{
+			Account: from,
+			Date: homebank.DateToHomebank(date),
+			Amount: transaction.Amount,
+			Wording: &transaction.TransactionIdentification,
+			Info: &info,
+			Status: &status,
+			Category: nil,
+			Paymode: paymode,
+			DstAccount: &to, // penezenka
+			Kxfer: &kxfer,
+		}
+		takeFlags := homebank.FLAG_TAKE_SIDE
+		take := homebank.Operation{
+			Account: to,
+			Date: homebank.DateToHomebank(date),
+			Amount: -transaction.Amount,
+			Wording: &transaction.TransactionIdentification,
+			Info: &info,
+			Status: &status,
+			Category: nil,
+			Paymode: paymode,
+			DstAccount: &from, // ucet
+			Kxfer: &kxfer,
+			Flags: &takeFlags,
+		}
+		return []homebank.Operation{withdraw, take}
 	} else {
 		fmt.Println("! no inferred category !")
 		return nil
 	}
 
-	return &homebank.Operation{
-		// TODO: infer date instead
+	return []homebank.Operation{homebank.Operation{
+		Account: accountKey,
 		Date: homebank.DateToHomebank(date),
 		Amount: transaction.Amount,
 		Wording: &transaction.TransactionIdentification,
 		Info: &info,
 		Status: &status,
 		Category: category,
-	}
+		Paymode: paymode,
+	}}
 }
 
 func loadTransactions() (rangeBegin time.Time, transactions []Transaction) {
@@ -161,7 +210,6 @@ func main() {
 	// transaction ID => Homebank operation
 	idToHomebank := make(map[string][]homebank.Operation)
 
-	accountKey := 2 // "KB bezny"
 	accounting, err := homebank.ParseHomebankFile("/home/prvak/dropbox/finance/ucetnictvi.xhb")
 	if err != nil {
 		panic(err)
@@ -175,6 +223,13 @@ func main() {
 	operations := accounting.GetAccountOperations(accountKey)
 
 	operationsHaveIdentification := make(map[string]bool)
+
+	maxKxfer := 0
+	for _, operation := range operations {
+		if operation.Kxfer != nil && *operation.Kxfer > maxKxfer {
+			maxKxfer = *operation.Kxfer
+		}
+	}
 
 	fmt.Println("In Homebank, but missing in KB:")
 	for _, operation := range operations {
@@ -250,10 +305,9 @@ func main() {
 		//fmt.Printf("%+v\n", transaction)
 		fmt.Printf("unpaired: %s\n", transaction.HumanString())
 
-		op := makePairingOperation(transaction)
+		op := makePairingOperation(transaction, &maxKxfer)
 		if op != nil {
-			op.Account = accountKey
-			suggestedOperations = append(suggestedOperations, *op)
+			suggestedOperations = append(suggestedOperations, op...)
 		}
 	}
 

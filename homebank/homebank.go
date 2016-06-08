@@ -15,6 +15,12 @@ const ASSETS_ACCOUNT = 3
 // Closed account
 const FLAG_CLOSED = 2
 
+// Flag on take side
+const FLAG_TAKE_SIDE = 2
+
+const PAYMODE_CC = 3
+const PAYMODE_CROSSTRANSFER = 5
+
 type Account struct {
 	Key     int     `xml:"key,attr"`
 	Flags   *int    `xml:"flags,attr"`
