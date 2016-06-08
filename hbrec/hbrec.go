@@ -67,6 +67,17 @@ func makePairingOperation(transaction Transaction) *homebank.Operation {
 
 	info := transaction.SystemDescription + reconcileTag
 	status := homebank.OPERATION_RECONCILED
+	date := transaction.SettlementDate
+	amount := transaction.Amount
+
+	dateFormat := "01.02.2006"
+	s := strings.Split(transaction.AVField4, " ")
+	av4D := s[0]
+	fmt.Println("AV1: [", transaction.AVField1, "] AV4: [", av4D, "] info: [", info, "] amount: [", amount, "]")
+	av4Date, e := time.Parse(dateFormat, av4D)
+	if e == nil {
+		date = av4Date
+	}
 
 	var category *int
 
@@ -77,6 +88,30 @@ func makePairingOperation(transaction Transaction) *homebank.Operation {
 		i := 8
 		category = &i  // service charge
 		info = "Bonus za výběr z ATM" + reconcileTag
+	} else if strings.Contains(transaction.AVField1, "DAMEJIDLO.CZ") {
+		i := 42
+		category = &i  // food
+		info = "damejidlo.cz" + reconcileTag
+	} else if strings.Contains(transaction.AVField1, "STEAMGAMES.COM") {
+		i := 51
+		category = &i  // hobbies & leisure
+		info = "hry na Steamu" + reconcileTag
+	} else if strings.Contains(transaction.AVField1, "CAJOVNA") {
+		i := 51
+		category = &i  // hobbies & leisure
+		info = "cajovna (" + transaction.AVField1 + ")" + reconcileTag
+	} else if strings.Contains(transaction.SenderIdentification, "DOBITI - O2") {
+		i := 11
+		category = &i  // dobiti mobilu
+		info = "dobiti mobilu" + reconcileTag
+	} else if strings.Contains(transaction.AVField1, "CD DECIN HL.N.") && amount <= -120 && amount >= -150 {
+		i := 132
+		category = &i  // decin <=> praha
+		info = "jizdenka z Decina do Prahy" + reconcileTag
+	} else if strings.Contains(transaction.AVField1, "CD PRAHA-HOLESOVICE") && amount <= -120 && amount >= -150 {
+		i := 132
+		category = &i  // decin <=> praha
+		info = "jizdenka z Prahy do Decina" + reconcileTag
 	} else {
 		fmt.Println("! no inferred category !")
 		return nil
@@ -84,7 +119,7 @@ func makePairingOperation(transaction Transaction) *homebank.Operation {
 
 	return &homebank.Operation{
 		// TODO: infer date instead
-		Date: homebank.DateToHomebank(transaction.SettlementDate),
+		Date: homebank.DateToHomebank(date),
 		Amount: transaction.Amount,
 		Wording: &transaction.TransactionIdentification,
 		Info: &info,
