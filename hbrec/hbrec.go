@@ -69,7 +69,6 @@ const walletKey = 1 // "penezenka"
 func promptPaymode() int {
 	paymodeMap := map[string]int{
 		"cc": homebank.PAYMODE_CC,
-		"service_charge": homebank.PAYMODE_SERVICE_CHARGE,
 	}
 	var items []readline.PrefixCompleterInterface
 	for key, _ := range paymodeMap {
