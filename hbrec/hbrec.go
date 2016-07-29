@@ -7,6 +7,7 @@ import (
 	"github.com/MichalPokorny/worthy/homebank"
 	"fmt"
 	"strings"
+	"gopkg.in/readline.v1"
 )
 
 type pairing map[string][]homebank.Operation
@@ -65,6 +66,51 @@ func getSupplement(operation homebank.Operation) operationSupplement {
 const accountKey = 2 // "KB bezny"
 const walletKey = 1 // "penezenka"
 
+func promptPaymode() int {
+	paymodeMap := map[string]int{
+		"cc": homebank.PAYMODE_CC,
+		"service_charge": homebank.PAYMODE_SERVICE_CHARGE,
+	}
+	var items []readline.PrefixCompleterInterface
+	for key, _ := range paymodeMap {
+		items = append(items, readline.PcItem(key))
+	}
+	var completer = readline.NewPrefixCompleter(items...)
+
+	rl, err := readline.NewEx(&readline.Config{
+		Prompt: "Paymode? > ",
+		AutoComplete: completer,
+	})
+	if err != nil {
+		panic(err)
+	}
+	defer rl.Close()
+
+	line, err := rl.Readline()
+	if err != nil {
+		return -1
+	}
+	if result, ok := paymodeMap[line]; ok {
+		return result
+	} else {
+		fmt.Println("no such paymode, bailing")
+		return -1
+	}
+}
+
+func promptInfo() string {
+	rl, err := readline.New("Info? (empty for default) > ")
+	if err != nil {
+		panic(err)
+	}
+	defer rl.Close()
+	line, err := rl.Readline()
+	if err != nil {
+		panic(err)
+	}
+	return line
+}
+
 func makePairingOperation(transaction Transaction, maxKxfer *int) []homebank.Operation {
 	reconcileTag := " (reconciled by hbrec " + time.Now().Format("2006-01-02") + ")"
 
@@ -86,22 +132,22 @@ func makePairingOperation(transaction Transaction, maxKxfer *int) []homebank.Ope
 	var paymode *int
 
 	if strings.Contains(info, "Odměna za služby") || strings.Contains(info, "Výběr z bankomatu - poplatek") || strings.Contains(info, "Dotaz na zůstatek v bankomatu") || strings.Contains(transaction.SenderIdentification, "POPLATEK ZA POLOŽKY") {
-		i := 8
+		i := CATEGORY_SERVICE_CHARGE
 		category = &i  // service charge
 	} else if strings.Contains(transaction.SenderIdentification, "BONUS ZA VÝBĚR ATM KB") {
-		i := 8
+		i := CATEGORY_SERVICE_CHARGE
 		category = &i  // service charge
 		info = "Bonus za výběr z ATM" + reconcileTag
 	} else if strings.Contains(transaction.AVField1, "DAMEJIDLO.CZ") {
-		i := 42
+		i := CATEGORY_FOOD
 		category = &i  // food
 		info = "damejidlo.cz" + reconcileTag
 	} else if strings.Contains(transaction.AVField1, "STEAMGAMES.COM") {
-		i := 51
+		i := CATEGORY_HOBBIES_AND_LEISURE
 		category = &i  // hobbies & leisure
 		info = "hry na Steamu" + reconcileTag
 	} else if strings.Contains(transaction.AVField1, "CAJOVNA") {
-		i := 51
+		i := CATEGORY_HOBBIES_AND_LEISURE
 		category = &i  // hobbies & leisure
 		info = "cajovna (" + transaction.AVField1 + ")" + reconcileTag
 
@@ -112,14 +158,14 @@ func makePairingOperation(transaction Transaction, maxKxfer *int) []homebank.Ope
 		category = &i  // dobiti mobilu
 		info = "dobiti mobilu" + reconcileTag
 	} else if strings.Contains(transaction.AVField1, "CD DECIN HL.N.") && amount <= -120 && amount >= -150 {
-		i := 132
+		i := CATEGORY_PRAHA_DECIN_DOPRAVA
 		category = &i  // decin <=> praha
 		info = "jizdenka z Decina do Prahy" + reconcileTag
 
 		j := homebank.PAYMODE_CC
 		paymode = &j
 	} else if strings.Contains(transaction.AVField1, "CD PRAHA-HOLESOVICE") && amount <= -120 && amount >= -150 {
-		i := 132
+		i := CATEGORY_PRAHA_DECIN_DOPRAVA
 		category = &i  // decin <=> praha
 		info = "jizdenka z Prahy do Decina" + reconcileTag
 
@@ -162,7 +208,25 @@ func makePairingOperation(transaction Transaction, maxKxfer *int) []homebank.Ope
 		return []homebank.Operation{withdraw, take}
 	} else {
 		fmt.Println("! no inferred category !")
-		return nil
+
+		paymodei := promptPaymode()
+		if paymodei == -1 {
+			fmt.Println("failed to get paymode")
+			return nil
+		}
+		paymode = &paymodei
+
+		categoryi := promptCategory()
+		if paymodei == -1 {
+			fmt.Println("failed to get category")
+			return nil
+		}
+		category = &categoryi
+
+		infoReplacement := promptInfo()
+		if infoReplacement != "" {
+			info = infoReplacement
+		}
 	}
 
 	return []homebank.Operation{homebank.Operation{

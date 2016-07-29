@@ -20,6 +20,7 @@ const FLAG_TAKE_SIDE = 2
 
 const PAYMODE_CC = 3
 const PAYMODE_CROSSTRANSFER = 5
+const PAYMODE_SERVICE_CHARGE = 8
 
 type Account struct {
 	Key     int     `xml:"key,attr"`
